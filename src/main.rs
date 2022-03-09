@@ -1,11 +1,7 @@
-#[macro_use]
-extern crate bencher;
-
 use std::collections::HashMap;
 
 use crate::ngramindex::IndexFeed;
 
-mod bench;
 mod ngramindex;
 mod ngramindexconstructor;
 
@@ -38,7 +34,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for line in index.search("kunstneren".chars()).into_iter() {
         println!("{line:?}")
     }
-    let a = 2 + 2;
 
     Ok(())
 }

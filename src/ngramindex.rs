@@ -4,8 +4,6 @@ pub trait GramAtom: Default + Copy + Eq + Hash {}
 
 impl<T> GramAtom for T where T: Copy + Default + Eq + Hash {}
 
-pub struct Gram<G: GramAtom, const N: usize>([G; N]);
-
 pub struct IndexFeed<G: GramAtom, GI, Data>
 where
     GI: Iterator<Item = G>,
@@ -24,20 +22,6 @@ pub struct GramData<G: GramAtom, const N: usize> {
     occurances: usize,
 }
 
-impl<G: GramAtom, const N: usize> GramData<G, N> {
-    fn blank_for_gram() -> Self {
-        let mut followed_by: [Vec<FollowGram<G>>; N] =
-            unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-        for i in 0..N {
-            followed_by[i] = Vec::new();
-        }
-        GramData {
-            followed_by,
-            occurances: 0,
-        }
-    }
-}
-
 pub struct NGramIndex<G: GramAtom, const N: usize, Data> {
     pub grams: HashMap<G, GramData<G, N>>,
     pub data: Vec<Data>,
@@ -54,14 +38,16 @@ impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
             occurances: usize,
         }
 
-        fn blank_maker<G: GramAtom, const N: usize>() -> HashGramData<G, N> {
-            let mut followed_by: [HashMap<G, usize>; N] = { [(); N].map(|_| HashMap::new()) };
-            for i in 0..N {
-                followed_by[i] = HashMap::new();
-            }
-            HashGramData {
-                followed_by,
-                occurances: 0,
+        impl<G: GramAtom, const N: usize> HashGramData<G, N> {
+            pub fn new() -> HashGramData<G, N> {
+                let mut followed_by: [HashMap<G, usize>; N] = { [(); N].map(|_| HashMap::new()) };
+                for i in 0..N {
+                    followed_by[i] = HashMap::new();
+                }
+                HashGramData {
+                    followed_by,
+                    occurances: 0,
+                }
             }
         }
 
@@ -84,7 +70,7 @@ impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
 
             'insert_loop: loop {
                 // We register that target is followed by followed_by[0] and then followed_by[1] and so forth
-                let stats = grams.entry(target).or_insert_with(blank_maker);
+                let stats = grams.entry(target).or_insert_with(HashGramData::new);
 
                 stats.occurances += 1;
 
@@ -109,7 +95,7 @@ impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
 
             // We add the trailing grams
             for (i, v) in followed_by.iter().enumerate() {
-                let stats = grams.entry(*v).or_insert_with(blank_maker);
+                let stats = grams.entry(*v).or_insert_with(HashGramData::new);
 
                 stats.occurances += 1;
 
