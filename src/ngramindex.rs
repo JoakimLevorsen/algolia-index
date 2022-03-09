@@ -1,8 +1,8 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-pub trait GramAtom: Default + Copy + Eq + Hash {}
+pub trait GramAtom: Default + Copy + Eq + Hash + Debug {}
 
-impl<T> GramAtom for T where T: Copy + Default + Eq + Hash {}
+impl<T> GramAtom for T where T: Copy + Default + Eq + Hash + Debug {}
 
 pub struct Gram<G: GramAtom, const N: usize>([G; N]);
 
@@ -170,6 +170,26 @@ impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
                     Some(v) => v,
                     None => break,
                 };
+
+                {
+                    let mut chain = this;
+                    let mut row = Vec::with_capacity(N);
+                    let mut j = 0;
+                    while let Some(Some(Some(next))) = self
+                        .grams
+                        .get(&chain)
+                        .map(|data| data.followed_by.get(0).map(|v| v.first()))
+                    {
+                        chain = next.gram;
+                        row.push(chain);
+                        j += 1;
+                        if j == 8 {
+                            break;
+                        }
+                    }
+
+                    println!("Chain:{i} {this:?} {chain:?} {row:?}");
+                }
 
                 let following = match self.grams.get(&this) {
                     Some(v) => v,

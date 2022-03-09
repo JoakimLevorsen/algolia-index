@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
 
-    for line in index.search("kunstneren".chars()).into_iter() {
+    for line in index.search("betydningsfuldt".chars()).into_iter() {
         println!("{line:?}")
     }
     let a = 2 + 2;
