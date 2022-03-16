@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
-use crate::ngramindex::IndexFeed;
+use typed_arena::Arena;
+
+use crate::{ngramindex::IndexFeed, ngramindex2::GramIndex};
 
 mod ngramindex;
+mod ngramindex2;
 mod ngramindexconstructor;
+mod preprocessor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = std::fs::read_to_string("./test.json")?;
 
     let products: HashMap<String, Product> = serde_json::from_str(&file)?;
-
-    use ngramindex::NGramIndex;
 
     let iter = products.values().map(
         |Product {
@@ -29,11 +31,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     );
 
-    let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
+    let mut arena = Arena::new();
+    let mut data_arena = Arena::new();
 
-    for line in index.search("betydningsfuldt".chars()).into_iter() {
-        println!("{line:?}")
-    }
+    let index: GramIndex<char, String, 8> =
+        ngramindex2::GramIndex::new(iter, &mut arena, &mut data_arena);
+
+    println!("Popular: {:?}", index.most_popular_chain('n'));
+    // let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
+
+    // for line in index.search("betydningsfuldt".chars()).into_iter() {
+    //     println!("{line:?}")
+    // }
 
     Ok(())
 }

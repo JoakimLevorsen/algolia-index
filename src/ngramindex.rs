@@ -6,19 +6,19 @@ impl<T> GramAtom for T where T: Copy + Default + Eq + Hash + Debug {}
 
 pub struct IndexFeed<G: GramAtom, GI, Data>
 where
-    GI: Iterator<Item = G>,
+    GI: Iterator<Item = G> + Clone,
 {
     pub grams: GI,
     pub data: Data,
 }
 
-struct FollowGram<G: GramAtom> {
+struct GramOccurances<G: GramAtom> {
     gram: G,
     occurances: usize,
 }
 
 pub struct GramData<G: GramAtom, const N: usize> {
-    followed_by: [Vec<FollowGram<G>>; N],
+    followed_by: [Vec<GramOccurances<G>>; N],
     occurances: usize,
 }
 
@@ -30,7 +30,7 @@ pub struct NGramIndex<G: GramAtom, const N: usize, Data> {
 impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
     pub fn alomst_new<I, S>(source_iter: S) -> (HashMap<G, GramData<G, N>>, Vec<Data>)
     where
-        I: Iterator<Item = G>,
+        I: Iterator<Item = G> + Clone,
         S: Iterator<Item = IndexFeed<G, I, Data>>,
     {
         struct HashGramData<G: GramAtom, const N: usize> {
@@ -125,7 +125,7 @@ impl<G: GramAtom, const N: usize, Data> NGramIndex<G, N, Data> {
                             followed_by: followed_by.map(|v| {
                                 let mut all: Vec<_> = v
                                     .into_iter()
-                                    .map(|(gram, occurances)| FollowGram { gram, occurances })
+                                    .map(|(gram, occurances)| GramOccurances { gram, occurances })
                                     .collect();
                                 all.sort_by(|a, b| a.occurances.cmp(&b.occurances).reverse());
                                 all
