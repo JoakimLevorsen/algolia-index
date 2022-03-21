@@ -1,12 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, VecDeque},
-    fmt::Debug,
-    hash::Hash,
-    rc::Rc,
-};
-
-use typed_arena::Arena;
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use crate::serialize::{Deserializable, Serializable};
 
@@ -66,112 +58,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         out
     }
 
-    pub fn most_likely(&self, input: [G; N]) -> Option<()> {
-        todo!()
-    }
-
-    fn gullible_search(&self, input: [G; N]) -> Option<&Vec<&Data>> {
-        let mut grams = input.into_iter();
-        let mut node = *self.roots.get(&grams.next()?)?;
-        for gram in grams {
-            node = *node.items.get(&gram)?;
-        }
-
-        // If we get to here the entire input exists in our tree
-        self.data.get(&input)
-    }
-
-    const SKIP_THREASHOLD: usize = if usize::MIN + 3 > N { 1 } else { N - 3 };
-
     /*
-    For any position in 0..N we test:
-        The actual gram provided
-        The 5 most popular grams from this node
-        The 5 most popular grams from the previous node
-        Skipping this node for the next
-
-        And see what chain we get that has a high weight, and likeness to the original
-    */
-
-    fn run_likely(
-        &self,
-        searched: [G; N],
-        i: usize,
-        input: &[G],
-        node: &GramNode<'_, G>,
-        previous: Option<&GramNode<'_, G>>,
-    ) -> Option<([G; N], f32)> {
-        let expected_gram = match input.get(0) {
-            Some(v) => *v,
-            // Return the correct
-            None => todo!(),
-        };
-        let current_expected = node.items.get(&expected_gram);
-        let next_expected = input.get(1).map(|v| node.items.get(v)).flatten();
-        let current_popular = node
-            .by_occurances
-            .iter()
-            .filter(|v| v.item != expected_gram)
-            .take(5);
-
-        let blank_arr = Vec::new();
-
-        let last_node_occurances = previous.map(|v| &v.by_occurances).unwrap_or(&blank_arr);
-        let last_node_popular = last_node_occurances
-            .iter()
-            .filter(|v| v.item != expected_gram)
-            .take(5);
-
-        // We then try completing the chain with all those options to see the most likely
-        let to_check = vec![current_expected, next_expected];
-        let all = to_check
-            .into_iter()
-            .filter_map(|v| v)
-            .chain(current_popular)
-            .chain(last_node_popular);
-
-        // We take all the fun lil nodes, and complete their chains
-        let my_node = Some(node);
-        let completed = all.filter_map(|node| {
-            let mut new_searched = searched;
-            new_searched[i] = node.item;
-            self.run_likely(searched, i + 1, &input[1..], node, my_node)
-        });
-
-        // let my_input = *input.get(0)?;
-        // let expected_following = *input.get(1)?;
-        // let user_provided = node.items.get(&my_input);
-        // let likely_replacements = node
-        //     .by_occurances
-        //     .iter()
-        //     .filter(|node_in_chain| node_in_chain.item != my_input)
-        //     .take(5)
-        //     .chain(user_provided);
-
-        // for node in likely_replacements {}
-
-        todo!()
-    }
-
-    // fn internal_likely<'b>(
-    //     &'b self,
-    //     input: &'b [G],
-    //     previous: PreviousSlice<'b>,
-    // ) -> Option<((), f64)> {
-    //     // If our slice is longer than 3, we also do a deeper examiniation
-    //     let deep_option = if input.len() > 3 {
-    //         let split = input.split_at(1);
-    //         let previous = PreviousSlice(Some(&previous), split.1);
-    //         self.internal_likely(split.0, previous)
-    //     } else {
-    //         None
-    //     };
-
-    //     todo!()
-    // }
-
-    /*
-
     For the current step in the tree:
         The user entered gram
         No Gram
@@ -320,6 +207,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
 #[test]
 fn test() -> Result<(), Box<dyn std::error::Error>> {
     use crate::Product;
+    use typed_arena::Arena;
 
     let file = std::fs::read_to_string("./test.json")?;
 
@@ -347,10 +235,6 @@ fn test() -> Result<(), Box<dyn std::error::Error>> {
 
     let index: GramIndex<char, String, 8> =
         GramIndex::index_from(iter, &mut arena, &mut data_arena);
-
-    if let Some(result) = index.gullible_search(['k', 'u', 'n', 's', 't', 'p', 'l', 'a']) {
-        println!("Found {} items", result.len());
-    }
 
     Ok(())
 }
