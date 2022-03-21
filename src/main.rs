@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use typed_arena::Arena;
 
-use crate::ngramindex::{GramIndex, IndexFeed};
+use crate::ngram::{GramIndex, IndexFeed};
 
-mod ngramindex;
+mod ngram;
 mod preprocessor;
 mod serde_array;
 mod serialize;
@@ -34,7 +34,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut arena = Arena::new();
     let mut data_arena = Arena::new();
 
-    let index: GramIndex<char, String, 8> = GramIndex::new(iter, &mut arena, &mut data_arena);
+    let index: GramIndex<char, String, 8> =
+        GramIndex::index_from(iter, &mut arena, &mut data_arena);
 
     // let json = match serde_json::to_string(&index) {
     //     Ok(v) => v,

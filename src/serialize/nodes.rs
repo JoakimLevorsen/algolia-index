@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use typed_arena::Arena;
 
-use crate::ngramindex::{GramAtom, GramIndex, GramNode};
+use crate::ngram::{GramAtom, GramIndex, GramNode};
 
 use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
 
