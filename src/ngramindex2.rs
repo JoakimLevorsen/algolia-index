@@ -342,10 +342,23 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         if index == N {
             return Some((previous_input, cummulative_weight));
         }
+
+        let best_result = |a: Option<([G; N], f32)>, b| {
+            match (a, b) {
+                // If only one exists, we use the existing
+                (Some(v), None) | (None, Some(v)) => Some(v),
+                // If none exist, we don't have any
+                (None, None) => None,
+                (Some(a), Some(b)) => Some(if a.1 > b.1 { a } else { b }),
+            }
+        };
+
         let user_entered = input.get(0).map(|gram| node.items.get(gram)).flatten();
         let user_entered_gram = user_entered.clone().map(|v| v.item);
 
         let mut most_likely = None;
+
+        let next_input = if input.len() == 0 { &[] } else { &input[1..] };
 
         // We try the current options, on the current node
         if let Some(user_entered) = user_entered {
@@ -353,7 +366,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
             previous_input[index] = user_entered.item;
 
             let found = Self::recursive_search(
-                &input[1..],
+                next_input,
                 user_entered,
                 Some(node),
                 changes,
@@ -364,13 +377,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
             );
 
             // If we found something, we keep the most likely
-            most_likely = match (found, most_likely) {
-                // If only one exists, we use the existing
-                (Some(v), None) | (None, Some(v)) => Some(v),
-                // If none exist, we don't have any
-                (None, None) => None,
-                (Some(a), Some(b)) => Some(if a.1 > b.1 { a } else { b }),
-            }
+            most_likely = best_result(found, most_likely)
         }
 
         // If more skips are allowed, we try those
@@ -390,7 +397,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                 previous_input[index] = next_node.item;
 
                 let found = Self::recursive_search(
-                    &input[1..],
+                    next_input,
                     next_node,
                     Some(node),
                     changes,
@@ -400,20 +407,44 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                     index + 1,
                 );
 
+                // We also try running this with the same input as we got, thereby compensating for forgotten grams
+                let repeat_found = Self::recursive_search(
+                    input,
+                    next_node,
+                    Some(node),
+                    changes + 1,
+                    changes_limit,
+                    cummulative_weight + next_node.weight,
+                    previous_input,
+                    index + 1,
+                );
+
                 // If we found something, we keep the most likely
-                most_likely = match (found, most_likely) {
-                    // If only one exists, we use the existing
-                    (Some(v), None) | (None, Some(v)) => Some(v),
-                    // If none exist, we don't have any
-                    (None, None) => None,
-                    (Some(a), Some(b)) => Some(if a.1 > b.1 { a } else { b }),
-                }
+                most_likely = best_result(best_result(found, repeat_found), most_likely)
             }
 
-            // First we try no-gram, meaning we just jump to the next user input
-            // let no_gram = input.get(1).map(|gram| node.items.get(gram)).flatten();
+            // We try ignoring the previous gram, in case the user entered "abc" when they meant "ac"
+            if let Some(current_input) = input.get(0) {
+                if let Some(Some(last)) = previous_node.map(|node| node.items.get(current_input)) {
+                    let mut previous_input = previous_input;
+                    // We overwrite the old gram
+                    previous_input[index - 1] = last.item;
 
-            // We also try searching for the current gram, and the 5 most likely on the last node
+                    let found = Self::recursive_search(
+                        next_input,
+                        *last,
+                        None,
+                        changes,
+                        changes_limit,
+                        cummulative_weight,
+                        previous_input,
+                        // We use the same index since we really looked at index - 1
+                        index,
+                    );
+
+                    most_likely = best_result(found, most_likely)
+                }
+            }
         }
 
         most_likely
