@@ -320,24 +320,17 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
 
     pub fn search(&self, query: [G; N]) -> Option<([G; N], f32)> {
         let root_node = self.roots.get(query.get(0)?)?;
-        Self::recursive_search(
-            &query[1..],
-            root_node,
-            None,
-            0,
-            2,
-            0.0,
-            [G::default(); N],
-            1,
-        )
+        let mut previos = [G::default(); N];
+        previos[0] = query[0];
+        Self::recursive_search(&query[1..], root_node, None, 0, 2, 0.0, previos, 1)
     }
 
     fn recursive_search(
         input: &[G],
         node: &GramNode<'_, G>,
         previous_node: Option<&GramNode<'_, G>>,
-        skips: u8,
-        skip_limit: u8,
+        changes: u8,
+        changes_limit: u8,
         cummulative_weight: f32,
         previous_input: [G; N],
         index: usize,
@@ -352,32 +345,20 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         let user_entered = input.get(0).map(|gram| node.items.get(gram)).flatten();
         let user_entered_gram = user_entered.clone().map(|v| v.item);
 
-        let most_popular = node
-            .by_occurances
-            .iter()
-            // We only want grams that do not match the
-            .filter(|potential| Some(potential.item) != user_entered_gram)
-            .take(5)
-            .map(|v| *v);
-
         let mut most_likely = None;
 
         // We try the current options, on the current node
-        for next_node in [user_entered]
-            .iter()
-            .filter_map(|v| v.as_ref().map(|v| **v))
-            .chain(most_popular)
-        {
+        if let Some(user_entered) = user_entered {
             let mut previous_input = previous_input;
-            previous_input[index] = next_node.item;
+            previous_input[index] = user_entered.item;
 
             let found = Self::recursive_search(
                 &input[1..],
-                next_node,
+                user_entered,
                 Some(node),
-                skips,
-                skip_limit,
-                cummulative_weight + next_node.weight,
+                changes,
+                changes_limit,
+                cummulative_weight + user_entered.weight,
                 previous_input,
                 index + 1,
             );
@@ -393,11 +374,44 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         }
 
         // If more skips are allowed, we try those
-        if skip_limit > skips && false {
-            let skips = skips + 1;
+        if changes_limit > changes {
+            let changes = changes + 1;
+
+            // We try the most popular options at this node
+            let most_popular = node
+                .by_occurances
+                .iter()
+                // We only want grams that do not match the
+                .filter(|potential| Some(potential.item) != user_entered_gram)
+                .map(|v| *v);
+
+            for next_node in most_popular {
+                let mut previous_input = previous_input;
+                previous_input[index] = next_node.item;
+
+                let found = Self::recursive_search(
+                    &input[1..],
+                    next_node,
+                    Some(node),
+                    changes,
+                    changes_limit,
+                    cummulative_weight + next_node.weight,
+                    previous_input,
+                    index + 1,
+                );
+
+                // If we found something, we keep the most likely
+                most_likely = match (found, most_likely) {
+                    // If only one exists, we use the existing
+                    (Some(v), None) | (None, Some(v)) => Some(v),
+                    // If none exist, we don't have any
+                    (None, None) => None,
+                    (Some(a), Some(b)) => Some(if a.1 > b.1 { a } else { b }),
+                }
+            }
 
             // First we try no-gram, meaning we just jump to the next user input
-            let no_gram = input.get(1).map(|gram| node.items.get(gram)).flatten();
+            // let no_gram = input.get(1).map(|gram| node.items.get(gram)).flatten();
 
             // We also try searching for the current gram, and the 5 most likely on the last node
         }
