@@ -2,11 +2,9 @@ use std::collections::HashMap;
 
 use typed_arena::Arena;
 
-use crate::{ngramindex::IndexFeed, ngramindex2::GramIndex};
+use crate::ngramindex::{GramIndex, IndexFeed};
 
 mod ngramindex;
-mod ngramindex2;
-mod ngramindexconstructor;
 mod preprocessor;
 mod serde_array;
 mod serialize;
@@ -36,8 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut arena = Arena::new();
     let mut data_arena = Arena::new();
 
-    let index: GramIndex<char, String, 8> =
-        ngramindex2::GramIndex::new(iter, &mut arena, &mut data_arena);
+    let index: GramIndex<char, String, 8> = GramIndex::new(iter, &mut arena, &mut data_arena);
 
     // let json = match serde_json::to_string(&index) {
     //     Ok(v) => v,
@@ -45,7 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // };
 
     // println!("Popular: {:?}", index.most_popular_chain('o'));
-    let query = ['k', 'u', 'n', 's', 't', 'p', 'l', 'a'];
+    let query = ['k', 'u', 's', 't', 'p', 'l', 'a', 't'];
+    // let query = ['k', 'u', 'm', 's', 't', 'p', 'l', 'l'];
     println!("Result of search {:?}", index.search(query));
     // let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
 
