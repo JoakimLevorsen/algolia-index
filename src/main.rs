@@ -8,6 +8,7 @@ mod ngramindex;
 mod ngramindex2;
 mod ngramindexconstructor;
 mod preprocessor;
+mod serialize;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = std::fs::read_to_string("./test.json")?;
