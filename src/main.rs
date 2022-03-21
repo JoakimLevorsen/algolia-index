@@ -8,6 +8,7 @@ mod ngramindex;
 mod ngramindex2;
 mod ngramindexconstructor;
 mod preprocessor;
+mod serde_array;
 mod serialize;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,7 +39,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let index: GramIndex<char, String, 8> =
         ngramindex2::GramIndex::new(iter, &mut arena, &mut data_arena);
 
-    println!("Popular: {:?}", index.most_popular_chain('n'));
+    // let json = match serde_json::to_string(&index) {
+    //     Ok(v) => v,
+    //     Err(e) => panic!("Got error {e}"),
+    // };
+
+    // println!("Popular: {:?}", index.most_popular_chain('o'));
+    let query = ['k', 'u', 'n', 's', 't', 'p', 'l', 'a'];
+    println!("Result of search {:?}", index.search(query));
     // let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
 
     // for line in index.search("betydningsfuldt".chars()).into_iter() {
