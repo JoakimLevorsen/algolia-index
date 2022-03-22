@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
-use typed_arena::Arena;
+use colosseum::sync::Arena;
 
 use super::{
     ArenaDeserializable, ArenaDeserializableCollection, Deserializable, DeserializableCollection,
@@ -25,18 +25,27 @@ impl<T: Serializable> Serializable for Vec<&T> {
     }
 }
 
-// impl<T: Deserializable> Deserializable for Vec<T> {
-//     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-//         let (mut input, len) = u64::deserialize(input)?;
-//         let mut out = Vec::with_capacity(len.try_into().unwrap());
-//         for _ in 0..len {
-//             let (new_input, item) = T::deserialize(input)?;
-//             input = new_input;
-//             out.push(item)
-//         }
-//         Some((input, out))
-//     }
-// }
+impl<T: Serializable> Serializable for &Vec<T> {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        (self.len() as u64).serialize(output);
+        for item in self.iter() {
+            item.serialize(output)
+        }
+    }
+}
+
+impl<T: Deserializable> Deserializable for Vec<T> {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let (mut input, len) = u64::deserialize(input)?;
+        let mut out = Vec::with_capacity(len.try_into().unwrap());
+        for _ in 0..len {
+            let (new_input, item) = T::deserialize(input)?;
+            input = new_input;
+            out.push(item)
+        }
+        Some((input, out))
+    }
+}
 
 impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'arena, T>
     for Vec<&'arena T>
@@ -56,6 +65,25 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
             out.push(item)
         }
         Some((input, out))
+    }
+}
+
+impl Serializable for String {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        (self.len() as u64).serialize(output);
+        for item in self.bytes() {
+            output.push(item)
+        }
+    }
+}
+
+impl Deserializable for String {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let (input, len) = u64::deserialize(input)?;
+        let len = len as usize;
+        let bytes = &input[1..len];
+        let string = String::from_utf8(bytes.to_vec()).ok()?;
+        Some((&input[len..], string))
     }
 }
 
@@ -91,6 +119,26 @@ where
         }
         Some((input, out))
     }
+}
+
+pub fn manual_hashmap_deserialize<'arena, 'input, K, V, VCon>(
+    input: &'input [u8],
+    arena: &'arena Arena<V>,
+) -> Option<HashMap<K, VCon>>
+where
+    'arena: 'input,
+    K: Deserializable + Eq + Hash,
+    VCon: ArenaDeserializableCollection<'arena, V>,
+{
+    let (mut input, len) = u64::deserialize(input)?;
+    let mut out = HashMap::with_capacity(len.try_into().unwrap());
+    for _ in 0..len {
+        let (new_input, key) = K::deserialize(input)?;
+        let (new_input, value) = VCon::deserialize_arena(new_input, arena)?;
+        input = new_input;
+        out.insert(key, value);
+    }
+    Some(out)
 }
 
 // impl<'arena, Deep, K, V> ArenaDeserializableCollection<'arena, Deep> for HashMap<K, V>

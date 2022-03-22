@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use typed_arena::Arena;
+use colosseum::sync::Arena;
 
 use crate::ngram::{GramAtom, GramIndex, GramNode};
 
-use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
+use super::{
+    collections::manual_hashmap_deserialize, ArenaDeserializable, ArenaDeserializableCollection,
+    Deserializable, Serializable,
+};
 
 impl<G: GramAtom> Serializable for GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
@@ -57,18 +60,20 @@ impl<G: GramAtom, Data: Ord + Serializable, const N: usize> Serializable
     }
 }
 
-// impl<'arena, G: GramAtom, Data, const N: usize> GramIndex<'arena, G, Data, N>
-// where
-//     Data: Ord + ArenaDeserializable<'arena, Data>,
-// {
-//     pub fn deserialize(
-//         input: &[u8],
-//         node_arena: &Arena<GramNode<'arena, G>>,
-//         data_arena: &Arena<Data>,
-//     ) -> Option<Self> {
-//         let (input, roots) = HashMap::deserialize_arena(input, node_arena)?;
-//         let data: HashMap<[G; N], Vec<&'arena Data>> =
-//             HashMap::deserialize_arena(input, data_arena)?.1;
-//         Some(GramIndex { roots, data })
-//     }
-// }
+// impl<G: GramAtom, Data: Ord + Serializable, const N: usize> GramIndex<'_, G, Data, N> {}
+
+impl<'arena, G: GramAtom, Data, const N: usize> GramIndex<'arena, G, Data, N>
+where
+    Data: Ord + ArenaDeserializable<'arena, Data>,
+{
+    pub fn deserialize<'input>(
+        input: &'input [u8],
+        node_arena: &'arena Arena<GramNode<'arena, G>>,
+        data_arena: &'arena Arena<Data>,
+    ) -> Option<Self> {
+        let (input, roots) = HashMap::deserialize_arena(input, node_arena)?;
+        let data: HashMap<[G; N], Vec<&'arena Data>> =
+            manual_hashmap_deserialize(input, data_arena)?;
+        Some(GramIndex { roots, data })
+    }
+}

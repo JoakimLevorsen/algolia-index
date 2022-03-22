@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use typed_arena::Arena;
+use colosseum::sync::Arena;
 
 use crate::{ngramindex::GramAtom, ngramindex2::GramNode};
 

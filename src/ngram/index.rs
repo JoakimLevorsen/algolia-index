@@ -11,12 +11,12 @@ impl<'a, T> GramAtom for T where
 {
 }
 
-pub struct IndexFeed<G: GramAtom, GI, Data>
+pub struct IndexFeed<'a, G: GramAtom, GI, Data>
 where
     GI: Iterator<Item = G> + Clone,
 {
     pub grams: GI,
-    pub data: Data,
+    pub data: &'a Data,
 }
 
 #[derive(Debug, PartialEq)]
@@ -231,37 +231,37 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
     }
 }
 
-#[test]
-fn test() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::Product;
-    use typed_arena::Arena;
+// #[test]
+// fn test() -> Result<(), Box<dyn std::error::Error>> {
+//     use crate::Product;
+//     use colosseum::sync::Arena;
 
-    let file = std::fs::read_to_string("./test.json")?;
+//     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, Product> = serde_json::from_str(&file)?;
+//     let products: HashMap<String, Product> = serde_json::from_str(&file)?;
 
-    let iter = products.values().map(
-        |Product {
-             description,
-             tags,
-             title,
-             vendor,
-             id,
-         }| IndexFeed {
-            data: id.clone(),
-            grams: [description, title, vendor]
-                .into_iter()
-                .chain(tags.into_iter())
-                .flat_map(|s| s.chars())
-                .flat_map(|c| c.to_lowercase()),
-        },
-    );
+//     let iter = products.values().map(
+//         |Product {
+//              description,
+//              tags,
+//              title,
+//              vendor,
+//              id,
+//          }| IndexFeed {
+//             data: id.clone(),
+//             grams: [description, title, vendor]
+//                 .into_iter()
+//                 .chain(tags.into_iter())
+//                 .flat_map(|s| s.chars())
+//                 .flat_map(|c| c.to_lowercase()),
+//         },
+//     );
 
-    let mut arena = Arena::new();
-    let mut data_arena = Arena::new();
+//     let mut arena = Arena::new();
+//     let mut data_arena = Arena::new();
 
-    let index: GramIndex<char, String, 8> =
-        GramIndex::index_from(iter, &mut arena, &mut data_arena);
+//     let index: GramIndex<char, String, 8> =
+//         GramIndex::index_from(iter, &mut arena, &mut data_arena);
 
-    Ok(())
-}
+//     Ok(())
+// }

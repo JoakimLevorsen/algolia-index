@@ -1,4 +1,4 @@
-use typed_arena::Arena;
+use colosseum::sync::Arena;
 
 pub trait Serializable {
     fn serialize(&self, output: &mut Vec<u8>);

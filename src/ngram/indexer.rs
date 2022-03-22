@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use typed_arena::Arena;
+use colosseum::sync::Arena;
 
 use super::{GramAtom, GramIndex, GramNode, IndexFeed};
 
@@ -76,17 +76,15 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
     pub fn index_from<'arena, I, S>(
         source_iter: S,
         node_arena: &'arena Arena<GramNode<'arena, G>>,
-        data_arena: &'arena Arena<Data>,
     ) -> GramIndex<'arena, G, Data, N>
     where
         I: Iterator<Item = G> + Clone,
-        S: Iterator<Item = IndexFeed<G, I, Data>>,
+        S: Iterator<Item = IndexFeed<'arena, G, I, Data>>,
     {
         let mut root: HashMap<G, MutableGramNode<G>> = HashMap::new();
         let mut data_map: HashMap<[G; N], Vec<&'arena Data>> = HashMap::new();
         for IndexFeed { grams, data } in source_iter {
             let mut queue: VecDeque<MutableGramNode<G>> = VecDeque::with_capacity(N + 1);
-            let data_ref = &*data_arena.alloc(data);
 
             let mut lookback = [G::default(); N];
 
@@ -132,8 +130,8 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                 // If we have the required grams, we add a data reference
                 data_map
                     .entry(lookback)
-                    .and_modify(|vec| vec.push(data_ref))
-                    .or_insert(vec![data_ref]);
+                    .and_modify(|vec| vec.push(data))
+                    .or_insert(vec![data]);
             }
         }
 
