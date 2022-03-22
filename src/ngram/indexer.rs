@@ -16,7 +16,7 @@ struct InnerMutableGramNode<G: GramAtom> {
 }
 
 fn occurances_to_weight(total: u32, this: u32) -> f32 {
-    (total as f32) / (this as f32)
+    (this as f32) / (total as f32)
 }
 
 #[derive(Clone)]

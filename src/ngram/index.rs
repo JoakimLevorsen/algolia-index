@@ -2,6 +2,8 @@ use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use crate::serialize::{Deserializable, Serializable};
 
+use super::result_ranker::{HashExtractable, ResultRanker};
+
 pub trait GramAtom: Default + Copy + Eq + Hash + Debug + Serializable + Deserializable {}
 
 impl<'a, T> GramAtom for T where
@@ -47,7 +49,9 @@ pub struct GramIndex<'a, G: GramAtom, Data: Ord, const N: usize = 8> {
     pub data: HashMap<[G; N], Vec<&'a Data>>,
 }
 
-impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
+impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
+    GramIndex<'a, G, Data, N>
+{
     pub fn most_popular_chain(&self, input: G) -> Vec<G> {
         let mut out = vec![];
         let mut node = self.roots.get(&input);
@@ -56,6 +60,29 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
             node = next.by_occurances.first();
         }
         out
+    }
+
+    pub fn search<I: Iterator<Item = G>>(&self, input: I) {
+        let mut results = ResultRanker::new();
+        let mut ngram = [G::default(); N];
+        for gram in input {
+            for i in 1..N {
+                ngram[i - 1] = ngram[i];
+            }
+            ngram[N - 1] = gram;
+            match self.search_gram(ngram) {
+                Some((ngram, confidence)) => match self.data.get(&ngram) {
+                    Some(data) => {
+                        for data in data {
+                            results.add(*data, confidence)
+                        }
+                    }
+                    None => continue,
+                },
+                None => continue,
+            };
+        }
+        let results = results.export_data_by_confidence();
     }
 
     /*
@@ -71,11 +98,11 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
     If skip limit is reached, we don't do the previous node or no node
     */
 
-    pub fn search(&self, query: [G; N]) -> Option<([G; N], f32)> {
+    pub fn search_gram(&self, query: [G; N]) -> Option<([G; N], f32)> {
         let root_node = self.roots.get(query.get(0)?)?;
         let mut previos = [G::default(); N];
         previos[0] = query[0];
-        Self::recursive_search(&query[1..], root_node, None, 0, 2, 0.0, previos, 1)
+        Self::recursive_search(&query[1..], root_node, None, 0, 2, 1.0, previos, 1)
     }
 
     fn recursive_search(
@@ -124,7 +151,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                 Some(node),
                 changes,
                 changes_limit,
-                cummulative_weight + user_entered.weight,
+                cummulative_weight * user_entered.weight,
                 previous_input,
                 index + 1,
             );
@@ -155,7 +182,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                     Some(node),
                     changes,
                     changes_limit,
-                    cummulative_weight + next_node.weight,
+                    cummulative_weight * next_node.weight,
                     previous_input,
                     index + 1,
                 );
@@ -167,7 +194,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                     Some(node),
                     changes + 1,
                     changes_limit,
-                    cummulative_weight + next_node.weight,
+                    cummulative_weight * next_node.weight,
                     previous_input,
                     index + 1,
                 );
