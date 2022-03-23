@@ -58,7 +58,13 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
         'arena: 'input,
     {
         let (mut input, len) = u64::deserialize(input)?;
-        let mut out = Vec::with_capacity(len.try_into().unwrap());
+        let mut out = Vec::with_capacity(match len.try_into() {
+            Ok(v) => v,
+            Err(e) => panic!(
+                "Failed to convert {len} to usize with max of {}",
+                usize::MAX
+            ),
+        });
         for _ in 0..len {
             let (new_input, item) = T::deserialize_arena(input, arena)?;
             input = new_input;
@@ -81,7 +87,7 @@ impl Deserializable for String {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
         let (input, len) = u64::deserialize(input)?;
         let len = len as usize;
-        let bytes = &input[1..len];
+        let bytes = &input[..len];
         let string = String::from_utf8(bytes.to_vec()).ok()?;
         Some((&input[len..], string))
     }

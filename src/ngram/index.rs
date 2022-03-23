@@ -62,7 +62,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
         out
     }
 
-    pub fn search<I: Iterator<Item = G>>(&self, input: I) {
+    pub fn search<I: Iterator<Item = G>>(&self, input: I) -> Vec<(&Data, f32)> {
         let mut results = ResultRanker::new();
         let mut ngram = [G::default(); N];
         for gram in input {
@@ -82,7 +82,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                 None => continue,
             };
         }
-        let results = results.export_data_by_confidence();
+        results.export_data_by_confidence()
     }
 
     /*
@@ -231,37 +231,44 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
     }
 }
 
-// #[test]
-// fn test() -> Result<(), Box<dyn std::error::Error>> {
-//     use crate::Product;
-//     use colosseum::sync::Arena;
+#[test]
+fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
+    use crate::Product;
+    use colosseum::sync::Arena;
 
-//     let file = std::fs::read_to_string("./test.json")?;
+    let file = std::fs::read_to_string("./test.json")?;
 
-//     let products: HashMap<String, Product> = serde_json::from_str(&file)?;
+    let products: HashMap<String, Product> = serde_json::from_str(&file)?;
 
-//     let iter = products.values().map(
-//         |Product {
-//              description,
-//              tags,
-//              title,
-//              vendor,
-//              id,
-//          }| IndexFeed {
-//             data: id.clone(),
-//             grams: [description, title, vendor]
-//                 .into_iter()
-//                 .chain(tags.into_iter())
-//                 .flat_map(|s| s.chars())
-//                 .flat_map(|c| c.to_lowercase()),
-//         },
-//     );
+    let data_arena = Arena::new();
+    let products: Vec<&Product> = products
+        .into_iter()
+        .map(|(_, v)| v)
+        .map(|p| &*data_arena.alloc(p))
+        .collect();
 
-//     let mut arena = Arena::new();
-//     let mut data_arena = Arena::new();
+    let iter = products.iter().map(|p| {
+        let Product {
+            description,
+            tags,
+            title,
+            vendor,
+            ..
+        } = p;
 
-//     let index: GramIndex<char, String, 8> =
-//         GramIndex::index_from(iter, &mut arena, &mut data_arena);
+        IndexFeed {
+            data: p,
+            grams: [description, title, vendor]
+                .into_iter()
+                .chain(tags.into_iter())
+                .flat_map(|s| s.chars())
+                .flat_map(|c| c.to_lowercase()),
+        }
+    });
 
-//     Ok(())
-// }
+    let mut arena = Arena::new();
+
+    let index: GramIndex<char, &Product, 8> = GramIndex::index_from(iter, &mut arena);
+
+    Ok(())
+}

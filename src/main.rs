@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } = p;
 
         IndexFeed {
-            data: p,
+            data: *p,
             grams: [description, title, vendor]
                 .into_iter()
                 .chain(tags.into_iter())
@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut arena = Arena::new();
 
-    let index: GramIndex<char, &Product, 7> = GramIndex::index_from(iter, &mut arena);
+    let index: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena);
 
     // let json = match serde_json::to_string(&index) {
     //     Ok(v) => v,

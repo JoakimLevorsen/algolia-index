@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use colosseum::sync::Arena;
 
-use crate::ngram::{GramAtom, GramIndex, GramNode};
+use crate::{
+    ngram::{GramAtom, GramIndex, GramNode},
+    Product,
+};
 
 use super::{
     collections::manual_hashmap_deserialize, ArenaDeserializable, ArenaDeserializableCollection,

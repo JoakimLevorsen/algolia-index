@@ -12,6 +12,22 @@ pub struct Product {
     pub id: String,
 }
 
+impl Product {
+    pub fn get_id(&self) -> u64 {
+        let mut out = 0;
+        let mut multiplier = 1;
+        for char in self.id.chars().rev() {
+            let n = match char.to_digit(10) {
+                Some(v) => v as u64,
+                None => break,
+            };
+            out += n * multiplier;
+            multiplier *= 10;
+        }
+        out
+    }
+}
+
 impl PartialOrd for Product {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -33,7 +49,7 @@ impl HashExtractable for &Product {
     }
 }
 
-impl Serializable for &Product {
+impl Serializable for Product {
     fn serialize(&self, output: &mut Vec<u8>) {
         let Product {
             description,
