@@ -7,15 +7,6 @@ use super::{
     Serializable,
 };
 
-// impl<T: Serializable> Serializable for Vec<T> {
-//     fn serialize(&self, output: &mut Vec<u8>) {
-//         (self.len() as u64).serialize(output);
-//         for item in self.iter() {
-//             item.serialize(output)
-//         }
-//     }
-// }
-
 impl<T: Serializable> Serializable for Vec<&T> {
     fn serialize(&self, output: &mut Vec<u8>) {
         (self.len() as u64).serialize(output);
@@ -26,6 +17,15 @@ impl<T: Serializable> Serializable for Vec<&T> {
 }
 
 impl<T: Serializable> Serializable for &Vec<T> {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        (self.len() as u64).serialize(output);
+        for item in self.iter() {
+            item.serialize(output)
+        }
+    }
+}
+
+impl Serializable for Vec<usize> {
     fn serialize(&self, output: &mut Vec<u8>) {
         (self.len() as u64).serialize(output);
         for item in self.iter() {
@@ -60,7 +60,7 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
         let (mut input, len) = u64::deserialize(input)?;
         let mut out = Vec::with_capacity(match len.try_into() {
             Ok(v) => v,
-            Err(e) => panic!(
+            Err(_) => panic!(
                 "Failed to convert {len} to usize with max of {}",
                 usize::MAX
             ),
@@ -127,49 +127,19 @@ where
     }
 }
 
-pub fn manual_hashmap_deserialize<'arena, 'input, K, V, VCon>(
-    input: &'input [u8],
-    arena: &'arena Arena<V>,
-) -> Option<HashMap<K, VCon>>
-where
-    'arena: 'input,
-    K: Deserializable + Eq + Hash,
-    VCon: ArenaDeserializableCollection<'arena, V>,
-{
-    let (mut input, len) = u64::deserialize(input)?;
-    let mut out = HashMap::with_capacity(len.try_into().unwrap());
-    for _ in 0..len {
-        let (new_input, key) = K::deserialize(input)?;
-        let (new_input, value) = VCon::deserialize_arena(new_input, arena)?;
-        input = new_input;
-        out.insert(key, value);
+impl<K: Deserializable + Eq + Hash, V: Deserializable> Deserializable for HashMap<K, V> {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let (mut input, len) = u64::deserialize(input)?;
+        let mut out = HashMap::with_capacity(len.try_into().unwrap());
+        for _ in 0..len {
+            let (new_input, key) = K::deserialize(input)?;
+            let (new_input, value) = V::deserialize(new_input)?;
+            input = new_input;
+            out.insert(key, value);
+        }
+        Some((input, out))
     }
-    Some(out)
 }
-
-// impl<'arena, Deep, K, V> ArenaDeserializableCollection<'arena, Deep> for HashMap<K, V>
-// where
-//     K: Deserializable + Eq + Hash,
-//     V: ArenaDeserializableCollection<'arena, Deep>,
-// {
-//     fn deserialize_arena<'input>(
-//         input: &'input [u8],
-//         arena: &'arena Arena<Deep>,
-//     ) -> Option<(&'input [u8], Self)>
-//     where
-//         'arena: 'input,
-//     {
-//         let (mut input, len) = u64::deserialize(input)?;
-//         let mut out = HashMap::with_capacity(len.try_into().unwrap());
-//         for _ in 0..len {
-//             let (input, key) = K::deserialize(input)?;
-//             let (new_input, value) = V::deserialize_arena(input, arena)?;
-//             input = new_input;
-//             out.insert(key, value);
-//         }
-//         Some((input, out))
-//     }
-// }
 
 impl<T: Serializable, const N: usize> Serializable for [T; N] {
     fn serialize(&self, output: &mut Vec<u8>) {

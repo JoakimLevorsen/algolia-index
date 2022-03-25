@@ -3,14 +3,12 @@ use std::collections::HashMap;
 use colosseum::sync::Arena;
 
 use crate::{
+    data::{ProductContainer, SuperAlloc},
     ngram::{GramAtom, GramIndex, GramNode},
     Product,
 };
 
-use super::{
-    collections::manual_hashmap_deserialize, ArenaDeserializable, ArenaDeserializableCollection,
-    Deserializable, Serializable,
-};
+use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
 
 impl<G: GramAtom> Serializable for GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
@@ -54,29 +52,50 @@ impl<'arena, G: GramAtom> ArenaDeserializable<'arena, Self> for GramNode<'arena,
     }
 }
 
-impl<G: GramAtom, Data: Ord + Serializable, const N: usize> Serializable
-    for GramIndex<'_, G, Data, N>
-{
+impl<G: GramAtom, const N: usize> Serializable for GramIndex<'_, G, Product<'_>, N> {
     fn serialize(&self, output: &mut Vec<u8>) {
+        self.product_container.serialize(output);
         self.roots.serialize(output);
-        self.data.serialize(output);
+        // We replace the product refs with their serialization id
+        let data: HashMap<[G; N], Vec<usize>> = self
+            .data
+            .iter()
+            .map(|(k, v)| (*k, v.iter().map(|p| p.serialization_id).collect()))
+            .collect();
+        data.serialize(output);
     }
 }
 
 // impl<G: GramAtom, Data: Ord + Serializable, const N: usize> GramIndex<'_, G, Data, N> {}
 
-impl<'arena, G: GramAtom, Data, const N: usize> GramIndex<'arena, G, Data, N>
-where
-    Data: Ord + ArenaDeserializable<'arena, Data>,
-{
-    pub fn deserialize<'input>(
+impl<'arena, G: GramAtom, const N: usize> GramIndex<'arena, G, Product<'arena>, N> {
+    pub fn deserialize<'input, 'super_arena>(
         input: &'input [u8],
         node_arena: &'arena Arena<GramNode<'arena, G>>,
-        data_arena: &'arena Arena<Data>,
-    ) -> Option<Self> {
+        super_alloc: &'static SuperAlloc,
+    ) -> Option<Self>
+    where
+        'super_arena: 'arena,
+    {
+        let (input, container) = ProductContainer::deserialize(input, super_alloc)?;
+        let container = super_alloc.alloc(container);
         let (input, roots) = HashMap::deserialize_arena(input, node_arena)?;
-        let data: HashMap<[G; N], Vec<&'arena Data>> =
-            manual_hashmap_deserialize(input, data_arena)?;
-        Some(GramIndex { roots, data })
+        // We make the ref array
+        let (_, bin_data) = HashMap::<[G; N], Vec<usize>>::deserialize(input)?;
+
+        // We then transform this data based on the data container
+        let mut data = HashMap::with_capacity(bin_data.len());
+        for (k, v) in bin_data.into_iter() {
+            let mut products = Vec::with_capacity(v.len());
+            for v in v {
+                products.push(container.products.get(v)?)
+            }
+            data.insert(k, products);
+        }
+        Some(GramIndex {
+            product_container: container,
+            roots,
+            data,
+        })
     }
 }

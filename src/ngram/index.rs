@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use crate::serialize::{Deserializable, Serializable};
+use crate::{
+    data::ProductContainer,
+    serialize::{Deserializable, Serializable},
+};
 
 use super::result_ranker::{HashExtractable, ResultRanker};
 
@@ -47,6 +50,7 @@ pub struct GramIndex<'a, G: GramAtom, Data: Ord, const N: usize = 8> {
     // Note we don't need popularity since we'll search for all parts of the gram
     pub roots: HashMap<G, &'a GramNode<'a, G>>,
     pub data: HashMap<[G; N], Vec<&'a Data>>,
+    pub product_container: &'a ProductContainer<'a>,
 }
 
 impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
@@ -233,21 +237,22 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
 
 #[test]
 fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::Product;
+    use crate::data::{optimize, Product, RawProduct, SuperAlloc};
     use colosseum::sync::Arena;
 
     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, Product> = serde_json::from_str(&file)?;
+    let products: HashMap<String, RawProduct> = serde_json::from_str(&file)?;
 
-    let data_arena = Arena::new();
-    let products: Vec<&Product> = products
-        .into_iter()
-        .map(|(_, v)| v)
-        .map(|p| &*data_arena.alloc(p))
-        .collect();
+    let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
 
-    let iter = products.iter().map(|p| {
+    lazy_static::lazy_static! {
+        static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
+    }
+
+    let prods = optimize(products, &SUPER_ARENA);
+
+    let iter = prods.products.iter().map(|p| {
         let Product {
             description,
             tags,
@@ -258,9 +263,9 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
 
         IndexFeed {
             data: p,
-            grams: [description, title, vendor]
+            grams: [description, title, &vendor.name]
                 .into_iter()
-                .chain(tags.into_iter())
+                .chain(tags.iter().map(|t| &t.name))
                 .flat_map(|s| s.chars())
                 .flat_map(|c| c.to_lowercase()),
         }
@@ -268,7 +273,7 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut arena = Arena::new();
 
-    let index: GramIndex<char, &Product, 8> = GramIndex::index_from(iter, &mut arena);
+    let index: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena, prods);
 
     Ok(())
 }

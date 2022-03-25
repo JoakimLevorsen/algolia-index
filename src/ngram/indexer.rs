@@ -6,6 +6,8 @@ use std::{
 
 use colosseum::sync::Arena;
 
+use crate::data::ProductContainer;
+
 use super::{GramAtom, GramIndex, GramNode, IndexFeed};
 
 #[derive(Debug, Clone)]
@@ -76,6 +78,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
     pub fn index_from<'arena, I, S>(
         source_iter: S,
         node_arena: &'arena Arena<GramNode<'arena, G>>,
+        product_container: &'arena ProductContainer<'arena>,
     ) -> GramIndex<'arena, G, Data, N>
     where
         I: Iterator<Item = G> + Clone,
@@ -155,6 +158,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         GramIndex {
             roots,
             data: data_map,
+            product_container,
         }
     }
 }

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use colosseum::sync::Arena;
+use data::{optimize, RawProduct, SuperAlloc};
 
+mod data;
 mod ngram;
 mod preprocessor;
-mod product;
 mod serde_array;
 mod serialize;
 
@@ -12,21 +13,22 @@ use crate::ngram::{GramIndex, IndexFeed};
 
 use serialize::Serializable;
 
-pub use product::Product;
+pub use data::Product;
+
+lazy_static::lazy_static! {
+    static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, Product> = serde_json::from_str(&file)?;
+    let products: HashMap<String, RawProduct> = serde_json::from_str(&file)?;
 
-    let data_arena = Arena::new();
-    let products: Vec<&Product> = products
-        .into_iter()
-        .map(|(_, v)| v)
-        .map(|p| &*data_arena.alloc(p))
-        .collect();
+    let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
 
-    let iter = products.iter().map(|p| {
+    let prods = optimize(products, &SUPER_ARENA);
+
+    let iter = prods.products.iter().map(|p| {
         let Product {
             description,
             tags,
@@ -36,10 +38,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } = p;
 
         IndexFeed {
-            data: *p,
-            grams: [description, title, vendor]
+            data: p,
+            grams: [description, title, &vendor.name]
                 .into_iter()
-                .chain(tags.into_iter())
+                .chain(tags.iter().map(|t| &t.name))
                 .flat_map(|s| s.chars())
                 .flat_map(|c| c.to_lowercase()),
         }
@@ -47,30 +49,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut arena = Arena::new();
 
-    let index: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena);
+    let index: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena, prods);
 
-    // let json = match serde_json::to_string(&index) {
-    //     Ok(v) => v,
-    //     Err(e) => panic!("Got error {e}"),
-    // };
-
-    // println!("Popular: {:?}", index.most_popular_chain('o'));
-
-    // let query = [' ', 'e', 'r', ' '];
     index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
 
     let mut output = Vec::new();
     index.serialize(&mut output);
 
     std::fs::write("out.test", output)?;
-
-    // let query = ['k', 'u', 'm', 's', 't', 'p', 'l', 'l'];
-
-    // let index: NGramIndex<_, 8, _> = NGramIndex::new(iter);
-
-    // for line in index.search("betydningsfuldt".chars()).into_iter() {
-    //     println!("{line:?}")
-    // }
 
     Ok(())
 }

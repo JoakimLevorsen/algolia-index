@@ -125,12 +125,6 @@ impl<'arena> ItemSerializable<'arena> for u64 {
     }
 }
 
-impl<'arena, G: GramAtom> ItemArenalessSerialization for GramNode<'arena, G> {
-    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        todo!()
-    }
-}
-
 impl<'arena, G: GramAtom> ItemSerializable<'arena> for GramNode<'arena, G> {
     fn index_serialize(&self, output: &mut Vec<u8>) {
         self.item.index_serialize(output);

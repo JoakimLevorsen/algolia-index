@@ -8,7 +8,7 @@ pub trait HashExtractable {
     fn extract(&self) -> &Self::Inner;
 }
 
-impl HashExtractable for Product {
+impl HashExtractable for Product<'_> {
     type Inner = String;
 
     fn extract(&self) -> &Self::Inner {

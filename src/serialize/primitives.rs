@@ -133,3 +133,17 @@ impl Deserializable for u64 {
 fn test_u64_serialization() {
     many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX]);
 }
+
+impl Serializable for usize {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        (*self as u64).serialize(output)
+    }
+}
+
+impl Deserializable for usize {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let (input, v) = u64::deserialize(input)?;
+        let v: usize = v.try_into().ok()?;
+        Some((input, v))
+    }
+}
