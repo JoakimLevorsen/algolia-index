@@ -66,22 +66,21 @@ impl<G: GramAtom, const N: usize> Serializable for GramIndex<'_, G, Product<'_>,
     }
 }
 
-// impl<G: GramAtom, Data: Ord + Serializable, const N: usize> GramIndex<'_, G, Data, N> {}
-
 impl<'arena, G: GramAtom, const N: usize> GramIndex<'arena, G, Product<'arena>, N> {
     pub fn deserialize<'input, 'super_arena>(
         input: &'input [u8],
         node_arena: &'arena Arena<GramNode<'arena, G>>,
         super_alloc: &'static SuperAlloc,
-    ) -> Option<Self>
+    ) -> Option<(&'input [u8], Self)>
     where
         'super_arena: 'arena,
+        'arena: 'input,
     {
         let (input, container) = ProductContainer::deserialize(input, super_alloc)?;
         let container = super_alloc.alloc(container);
         let (input, roots) = HashMap::deserialize_arena(input, node_arena)?;
         // We make the ref array
-        let (_, bin_data) = HashMap::<[G; N], Vec<usize>>::deserialize(input)?;
+        let (input, bin_data) = HashMap::<[G; N], Vec<usize>>::deserialize(input)?;
 
         // We then transform this data based on the data container
         let mut data = HashMap::with_capacity(bin_data.len());
@@ -92,10 +91,13 @@ impl<'arena, G: GramAtom, const N: usize> GramIndex<'arena, G, Product<'arena>, 
             }
             data.insert(k, products);
         }
-        Some(GramIndex {
-            product_container: container,
-            roots,
-            data,
-        })
+        Some((
+            input,
+            GramIndex {
+                product_container: container,
+                roots,
+                data,
+            },
+        ))
     }
 }

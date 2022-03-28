@@ -1,8 +1,10 @@
+mod all_indexes;
 mod collections;
 mod nodes;
 mod primitives;
 mod traits;
 
+pub use all_indexes::{deserialize_all, serialize_all};
 pub use traits::*;
 
 #[cfg(test)]
@@ -17,6 +19,7 @@ fn test_serialize_deserialize_wasm() {
 #[test]
 fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
     use crate::{
+        classic_indexes::ClassicIndexes,
         data::{optimize, RawProduct},
         ngram::{GramIndex, IndexFeed},
         Product, SuperAlloc,
@@ -34,7 +37,7 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
         static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
     }
 
-    let prods = optimize(products, &SUPER_ARENA);
+    let (prods, classic) = optimize(products, &SUPER_ARENA);
 
     let iter = prods.products.iter().map(|p| {
         let Product {
@@ -60,8 +63,7 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
     let index: GramIndex<char, Product, 8> = GramIndex::index_from(iter, &mut arena, prods);
 
     // We then serialize and deserialize
-    let mut buff = Vec::new();
-    index.serialize(&mut buff);
+    let buff = serialize_all(&index, &classic);
 
     let node_arena2 = Arena::new();
 
@@ -69,10 +71,11 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
         static ref SUPER_ARENA2: SuperAlloc = SuperAlloc::new();
     }
 
-    let deserialized: GramIndex<char, Product, 8> =
-        GramIndex::deserialize(&buff[..], &node_arena2, &SUPER_ARENA2).unwrap();
+    let (deserialized_ngram, deserialized_classic): (GramIndex<char, Product, 8>, ClassicIndexes) =
+        deserialize_all(&buff[..], &node_arena2, &SUPER_ARENA2).unwrap();
 
-    assert!(index == deserialized);
+    assert!(index == deserialized_ngram);
+    assert!(classic == deserialized_classic);
 
     Ok(())
 }

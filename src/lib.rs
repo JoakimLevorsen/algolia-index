@@ -1,10 +1,13 @@
 use std::sync::{Arc, RwLock};
 
+use classic_indexes::ClassicIndexes;
 use colosseum::sync::Arena;
 use data::{Product, SuperAlloc};
 use ngram::{GramIndex, GramNode};
+use serialize::{deserialize_all, serialize_all};
 use wasm_bindgen::prelude::*;
 
+pub mod classic_indexes;
 pub mod data;
 pub mod ngram;
 pub mod preprocessor;
@@ -15,6 +18,7 @@ type Index = GramIndex<'static, char, Product<'static>, 7>;
 
 lazy_static::lazy_static! {
     static ref SHARED_INDEX: RwLock<Option<Arc<Index>>> = RwLock::new(None);
+    static ref SHARED_CLASSIC_INDEX: RwLock<Option<Arc<ClassicIndexes<'static>>>> = RwLock::new(None);
     static ref NODE_ARENA: Arena<GramNode<'static, char>> = Arena::new();
     static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
 }
@@ -28,10 +32,14 @@ pub fn init_panic_hook() {
 pub fn initialize(input: &[u8]) -> bool {
     init_panic_hook();
 
-    let index: GramIndex<'_, char, Product, 7> =
-        GramIndex::deserialize(input, &NODE_ARENA, &SUPER_ARENA).unwrap();
+    let (index, classic) = deserialize_all(input, &NODE_ARENA, &SUPER_ARENA).unwrap();
 
     SHARED_INDEX.write().unwrap().replace(Arc::new(index));
+    SHARED_CLASSIC_INDEX
+        .write()
+        .unwrap()
+        .replace(Arc::new(classic));
+
     true
 }
 
@@ -53,13 +61,12 @@ pub fn search(input: String) -> Option<Vec<u64>> {
 
 use crate::data::{optimize, RawProduct};
 use crate::ngram::IndexFeed;
-use crate::serialize::Serializable;
 
 pub fn index_and_serialize(
     products: Vec<RawProduct>,
     arena: &'static SuperAlloc,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let prods = optimize(products, arena);
+    let (prods, classic_index) = optimize(products, arena);
 
     let iter = prods.products.iter().map(|p| {
         let Product {
@@ -86,8 +93,7 @@ pub fn index_and_serialize(
 
     index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
 
-    let mut output = Vec::new();
-    index.serialize(&mut output);
+    let output = serialize_all(&index, &classic_index);
 
     Ok(output)
 }

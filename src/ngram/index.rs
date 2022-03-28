@@ -251,7 +251,7 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
         static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
     }
 
-    let prods = optimize(products, &SUPER_ARENA);
+    let (prods, _) = optimize(products, &SUPER_ARENA);
 
     let iter = prods.products.iter().map(|p| {
         let Product {

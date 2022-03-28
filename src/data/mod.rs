@@ -1,4 +1,3 @@
-mod categorical;
 mod container;
 mod key_value_feature;
 mod product;

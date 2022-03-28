@@ -35,6 +35,19 @@ impl Deserializable for f32 {
     }
 }
 
+impl Serializable for bool {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        output.push(if *self { 1 } else { 0 })
+    }
+}
+
+impl Deserializable for bool {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let byte = input.get(0)?;
+        Some((&input[1..], *byte != 0))
+    }
+}
+
 impl Serializable for u64 {
     fn serialize(&self, output: &mut Vec<u8>) {
         let mut input = *self;
@@ -150,6 +163,11 @@ mod tests {
     #[test]
     fn test_u64_serialization() {
         many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX]);
+    }
+
+    #[test]
+    fn test_bool_serialization() {
+        many_serialize_deserialize(&[true, false]);
     }
 
     #[test]

@@ -49,7 +49,7 @@ impl<'a> ProductContainer<'a> {
         let vendors = Arc::new(vendors);
 
         let (mut input, product_count) = usize::deserialize(input)?;
-        let products = {
+        let (input, products) = {
             let mut products = Vec::new();
             for id in 0..product_count {
                 let (new_input, product) =
@@ -57,7 +57,7 @@ impl<'a> ProductContainer<'a> {
                 products.push(product);
                 input = new_input;
             }
-            products
+            (input, products)
         };
 
         Some((
