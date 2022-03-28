@@ -5,9 +5,9 @@ use data::{Product, SuperAlloc};
 use ngram::{GramIndex, GramNode};
 use wasm_bindgen::prelude::*;
 
-mod data;
-mod ngram;
-mod preprocessor;
+pub mod data;
+pub mod ngram;
+pub mod preprocessor;
 mod serde_array;
 mod serialize;
 
@@ -49,4 +49,45 @@ pub fn search(input: String) -> Option<Vec<u64>> {
         .collect();
 
     Some(results)
+}
+
+use crate::data::{optimize, RawProduct};
+use crate::ngram::IndexFeed;
+use crate::serialize::Serializable;
+
+pub fn index_and_serialize(
+    products: Vec<RawProduct>,
+    arena: &'static SuperAlloc,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let prods = optimize(products, arena);
+
+    let iter = prods.products.iter().map(|p| {
+        let Product {
+            description,
+            tags,
+            title,
+            vendor,
+            ..
+        } = p;
+
+        IndexFeed {
+            data: p,
+            grams: [description, title, &vendor.name]
+                .into_iter()
+                .chain(tags.iter().map(|t| &t.name))
+                .flat_map(|s| s.chars())
+                .flat_map(|c| c.to_lowercase()),
+        }
+    });
+
+    let mut arena = Arena::new();
+
+    let index: GramIndex<char, Product, 5> = GramIndex::index_from(iter, &mut arena, prods);
+
+    index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
+
+    let mut output = Vec::new();
+    index.serialize(&mut output);
+
+    Ok(output)
 }

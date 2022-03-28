@@ -9,6 +9,7 @@ use super::{
     Product,
 };
 
+#[derive(PartialEq, Eq)]
 pub struct ProductContainer<'a> {
     pub products: Vec<Product<'a>>,
     pub tags: Arc<TagManager<'a>>,

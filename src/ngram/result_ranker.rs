@@ -40,15 +40,6 @@ impl<'a, H: Hash + Eq, Data: HashExtractable<Inner = H>> ResultRanker<'a, H, Dat
             .or_insert((data, confidence));
     }
 
-    pub fn add_all<'b, I: Iterator<Item = &'a Data>>(&'b mut self, input: I, confidence: f32)
-    where
-        'a: 'b,
-    {
-        for data in input {
-            self.add(data, confidence)
-        }
-    }
-
     pub fn export_data_by_confidence(mut self) -> Vec<(&'a Data, f32)> {
         let mut all_data: Vec<_> = self.confidence_for_data.drain().map(|(_, v)| v).collect();
         all_data.sort_by(|(_, a), (_, b)| {

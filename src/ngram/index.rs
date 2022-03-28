@@ -46,6 +46,7 @@ impl<G: GramAtom> PartialOrd for GramNode<'_, G> {
     }
 }
 
+#[derive(PartialEq, Eq)]
 pub struct GramIndex<'a, G: GramAtom, Data: Ord, const N: usize = 8> {
     // Note we don't need popularity since we'll search for all parts of the gram
     pub roots: HashMap<G, &'a GramNode<'a, G>>,
@@ -273,7 +274,7 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut arena = Arena::new();
 
-    let index: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena, prods);
+    let _: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena, prods);
 
     Ok(())
 }

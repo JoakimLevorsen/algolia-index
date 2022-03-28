@@ -16,34 +16,6 @@ impl Deserializable for char {
     }
 }
 
-fn serialize_deserialize<T: Serializable + Deserializable + std::fmt::Debug>(input: &T) -> T {
-    let mut bytes = Vec::new();
-    input.serialize(&mut bytes);
-    let (remaining_bytes, output) = T::deserialize(&bytes[..]).unwrap();
-    assert!(
-        remaining_bytes.len() == 0,
-        "Not all bytes consumed for {input:?}"
-    );
-    output
-}
-
-fn many_serialize_deserialize<T: Serializable + Deserializable + Eq + std::fmt::Debug>(
-    input: &[T],
-) {
-    for item in input.iter() {
-        let deserialized = serialize_deserialize(item);
-        assert!(
-            item == &deserialized,
-            "{item:?} was serialized/deserialized to {deserialized:?}"
-        )
-    }
-}
-
-#[test]
-fn test_char_serialization() {
-    many_serialize_deserialize(&['a', char::default(), '\0', 'æ', '👽'])
-}
-
 impl Serializable for f32 {
     fn serialize(&self, output: &mut Vec<u8>) {
         for byte in self.to_be_bytes() {
@@ -129,11 +101,6 @@ impl Deserializable for u64 {
     }
 }
 
-#[test]
-fn test_u64_serialization() {
-    many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX]);
-}
-
 impl Serializable for usize {
     fn serialize(&self, output: &mut Vec<u8>) {
         (*self as u64).serialize(output)
@@ -145,5 +112,50 @@ impl Deserializable for usize {
         let (input, v) = u64::deserialize(input)?;
         let v: usize = v.try_into().ok()?;
         Some((input, v))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Deserializable, Serializable};
+
+    fn serialize_deserialize<T: Serializable + Deserializable + std::fmt::Debug>(input: &T) -> T {
+        let mut bytes = Vec::new();
+        input.serialize(&mut bytes);
+        let (remaining_bytes, output) = T::deserialize(&bytes[..]).unwrap();
+        assert!(
+            remaining_bytes.len() == 0,
+            "Not all bytes consumed for {input:?}"
+        );
+        output
+    }
+
+    fn many_serialize_deserialize<T: Serializable + Deserializable + Eq + std::fmt::Debug>(
+        input: &[T],
+    ) {
+        for item in input.iter() {
+            let deserialized = serialize_deserialize(item);
+            assert!(
+                item == &deserialized,
+                "{item:?} was serialized/deserialized to {deserialized:?}"
+            )
+        }
+    }
+
+    #[test]
+    fn test_char_serialization() {
+        many_serialize_deserialize(&['a', char::default(), '\0', 'æ', '👽'])
+    }
+
+    #[test]
+    fn test_u64_serialization() {
+        many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX]);
+    }
+
+    #[test]
+    fn test_string_serialization() {
+        let items =
+            ["", "Hello", "hello", " assadio👽 s da sad👽i oasid\n\t\n"].map(|v| v.to_string());
+        many_serialize_deserialize(&items);
     }
 }

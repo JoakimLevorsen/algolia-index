@@ -18,6 +18,14 @@ pub struct VendorManager<'a> {
     alloc: &'a Arena<Vendor>,
 }
 
+impl<'a> PartialEq for VendorManager<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.tags == other.tags && self.by_id == other.by_id
+    }
+}
+
+impl<'a> Eq for VendorManager<'a> {}
+
 impl<'a> VendorManager<'a> {
     pub fn get_or_insert(&'a mut self, name: &str) -> &'a Vendor {
         if let Some(tag) = self.tags.get(name) {

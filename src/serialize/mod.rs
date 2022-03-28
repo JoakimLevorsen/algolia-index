@@ -10,25 +10,8 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 #[test]
 #[wasm_bindgen_test]
-fn test_deserialize_wasm() {
-    use crate::{data::SuperAlloc, GramIndex, Product};
-    use colosseum::sync::Arena;
-    use std::io::Read;
-
-    let mut file = std::fs::File::open("./out.test").unwrap();
-
-    let mut buff = Vec::new();
-
-    let index_data = file.read_to_end(&mut buff).unwrap();
-
-    let node_arena = Arena::new();
-
-    lazy_static::lazy_static! {
-        static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
-    }
-
-    let index: GramIndex<char, Product, 7> =
-        GramIndex::deserialize(&buff, &node_arena, &SUPER_ARENA).unwrap();
+fn test_serialize_deserialize_wasm() {
+    test_serialize_and_deserialize().unwrap();
 }
 
 #[test]
@@ -88,6 +71,8 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
 
     let deserialized: GramIndex<char, Product, 8> =
         GramIndex::deserialize(&buff[..], &node_arena2, &SUPER_ARENA2).unwrap();
+
+    assert!(index == deserialized);
 
     Ok(())
 }
