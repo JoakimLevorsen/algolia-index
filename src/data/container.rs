@@ -16,13 +16,6 @@ pub struct ProductContainer<'a> {
 }
 
 impl<'a> ProductContainer<'a> {
-    // pub fn new(super_alloc: &'a SuperAlloc) -> ProductContainer<'a> {
-    //     ProductContainer {
-    //         products: Vec::new(),
-    //         tags: TagManager::new(super_alloc),
-    //         vendors: VendorManager::new(super_alloc),
-    //     }
-    // }
     pub fn new(
         products: Vec<Product<'a>>,
         tags: Arc<TagManager<'a>>,
@@ -46,8 +39,6 @@ impl<'a> ProductContainer<'a> {
         let tag_arena: &'a Arena<Tag> = super_alloc.alloc(Arena::new());
         let (input, tags): (&'input [u8], TagManager<'a>) =
             TagManager::deserialize_arena(input, tag_arena)?;
-        // let tag_arena: &'outerarena Arena<Tag> = super_alloc.alloc(Arena::new());
-        // let tags: &'a mut TagManager<'a> = super_alloc.alloc_mut(tags);
 
         let tags = Arc::new(tags);
 

@@ -76,7 +76,7 @@ impl Serializable for Product<'_> {
         vendor.id.serialize(output);
         tags.len().serialize(output);
         for tag in tags {
-            tag.serialize(output);
+            tag.id.serialize(output);
         }
     }
 }
