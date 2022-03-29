@@ -6,7 +6,7 @@ use crate::{data::ProductContainer, serialize::Serializable};
 
 #[derive(PartialEq, Eq)]
 pub struct ClassicIndexes<'a> {
-    categories: Vec<Category<'a>>,
+    pub categories: Vec<Category<'a>>,
 }
 
 impl<'a> ClassicIndexes<'a> {

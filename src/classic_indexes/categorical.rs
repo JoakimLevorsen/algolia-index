@@ -14,6 +14,7 @@ pub struct Category<'a> {
 pub struct CategoryOption<'a> {
     pub name: String,
     pub content: Vec<&'a Product<'a>>,
+    pub serialization_id: usize,
 }
 
 impl<'a> Serializable for Category<'a> {
@@ -46,6 +47,7 @@ impl<'a> Category<'a> {
     pub fn deserialize<'i>(
         input: &'i [u8],
         all_products: &'a Vec<Product<'a>>,
+        next_serialization_id: &mut usize,
     ) -> Option<(&'i [u8], Category<'a>)> {
         let (input, exclusive) = bool::deserialize(input)?;
         let (input, name) = String::deserialize(input)?;
@@ -71,7 +73,14 @@ impl<'a> Category<'a> {
                 last = Some(found);
             }
 
-            options.push(CategoryOption { name, content })
+            let serialization_id = *next_serialization_id;
+            *next_serialization_id += 1;
+
+            options.push(CategoryOption {
+                name,
+                content,
+                serialization_id,
+            })
         }
 
         Some((
@@ -90,8 +99,10 @@ impl<'a> Category<'a> {
     ) -> Option<(&'i [u8], Vec<Category<'a>>)> {
         let (mut input, len) = usize::deserialize(input)?;
         let mut cats = Vec::with_capacity(len);
+        let mut next_option_serialization_id = 0;
         for _ in 0..len {
-            let (new_input, cat) = Category::deserialize(input, &products)?;
+            let (new_input, cat) =
+                Category::deserialize(input, &products, &mut next_option_serialization_id)?;
             input = new_input;
             cats.push(cat);
         }
@@ -115,10 +126,11 @@ impl<'a> Category<'a> {
 }
 
 impl<'a> CategoryOption<'a> {
-    pub fn new(name: String) -> CategoryOption<'a> {
+    pub fn new(name: String, serialization_id: usize) -> CategoryOption<'a> {
         CategoryOption {
             name,
             content: Vec::new(),
+            serialization_id,
         }
     }
 }

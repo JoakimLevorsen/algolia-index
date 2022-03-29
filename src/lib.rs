@@ -9,6 +9,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod classic_indexes;
 pub mod data;
+pub mod js_interactable;
 pub mod ngram;
 pub mod preprocessor;
 mod serde_array;
@@ -57,6 +58,17 @@ pub fn search(input: String) -> Option<Vec<u64>> {
         .collect();
 
     Some(results)
+}
+
+use js_interactable::CategoryHandler;
+
+#[wasm_bindgen]
+pub fn get_categories() -> Option<CategoryHandler> {
+    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+
+    let index = read_lock.as_ref()?;
+
+    Some(CategoryHandler::new(index.clone()))
 }
 
 use crate::data::{optimize, RawProduct};

@@ -83,6 +83,7 @@ pub fn optimize(
     out.products = products;
 
     let mut categories: Vec<Category> = Vec::new();
+    let mut next_serialization_id = 0;
     // Then we register the categories for the options now they're read only
     for (i, options) in options_list.into_iter().enumerate() {
         for raw_option in options {
@@ -100,7 +101,8 @@ pub fn optimize(
                 let option = match category.options.iter_mut().find(|o| o.name == raw_value) {
                     Some(v) => v,
                     None => {
-                        let new = CategoryOption::new(raw_value.to_string());
+                        let new = CategoryOption::new(raw_value.to_string(), next_serialization_id);
+                        next_serialization_id += 1;
                         category.options.push(new);
                         let just_inserted = category.options.len() - 1;
                         category.options.get_mut(just_inserted).unwrap()

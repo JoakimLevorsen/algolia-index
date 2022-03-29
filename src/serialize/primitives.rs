@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_u64_serialization() {
-        many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX]);
+        many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX, u8::MAX as u64]);
     }
 
     #[test]
