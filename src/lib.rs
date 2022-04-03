@@ -46,7 +46,7 @@ pub fn initialize(input: &[u8]) -> bool {
 }
 
 #[wasm_bindgen]
-pub fn search(input: String) -> Option<Vec<u64>> {
+pub fn search(input: String, categories: CategoryHandler, tags: TagHandler) -> Option<Vec<u64>> {
     let lock = SHARED_INDEX.try_read().ok()?;
     let index = lock.as_ref()?.clone();
 
@@ -55,13 +55,16 @@ pub fn search(input: String) -> Option<Vec<u64>> {
     let results = results
         .into_iter()
         .map(|(v, _)| v)
+        // We remove the products of the wrong category or tag
+        .filter(|p| categories.is_valid(p))
+        .filter(|p| tags.is_valid(p))
         .map(|p| p.get_id())
         .collect();
 
     Some(results)
 }
 
-use js_interactable::CategoryHandler;
+use js_interactable::{CategoryHandler, TagHandler};
 
 #[wasm_bindgen]
 pub fn get_categories() -> Option<CategoryHandler> {
@@ -70,6 +73,15 @@ pub fn get_categories() -> Option<CategoryHandler> {
     let index = read_lock.as_ref()?;
 
     Some(CategoryHandler::new(index.clone()))
+}
+
+#[wasm_bindgen]
+pub fn get_tags() -> Option<TagHandler> {
+    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+
+    let index = read_lock.as_ref()?;
+
+    Some(TagHandler::new(index.clone()))
 }
 
 use crate::data::{optimize, RawProduct};

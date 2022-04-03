@@ -122,7 +122,7 @@ pub fn optimize(
                     }
                 };
 
-                option.content.push(&out.products[i])
+                option.add(&out.products[i])
             }
         }
     }

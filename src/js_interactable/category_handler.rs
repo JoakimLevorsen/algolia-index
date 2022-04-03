@@ -1,19 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::classic_indexes::ClassicIndexes;
+use crate::{classic_indexes::ClassicIndexes, data::Product};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct CategoryHandler {
     handle: Arc<ClassicIndexes<'static>>,
-    activated: HashMap<usize, ()>,
+    active: HashMap<(usize, usize), ()>,
 }
 
 #[wasm_bindgen]
 impl CategoryHandler {
     pub fn toggle(&mut self, item: ExportCategoryOption) {
         use std::collections::hash_map::Entry;
-        match self.activated.entry(item.id) {
+        match self.active.entry(item.keys()) {
             Entry::Occupied(v) => v.remove(),
             Entry::Vacant(space) => {
                 space.insert(());
@@ -22,7 +22,7 @@ impl CategoryHandler {
     }
 
     pub fn get_state(&self, item: ExportCategoryOption) -> bool {
-        self.activated.contains_key(&item.id)
+        self.active.contains_key(&item.keys())
     }
 
     pub fn iter(&self) -> CategoryIter {
@@ -37,8 +37,19 @@ impl CategoryHandler {
     pub fn new(handle: Arc<ClassicIndexes<'static>>) -> CategoryHandler {
         CategoryHandler {
             handle,
-            activated: HashMap::new(),
+            active: HashMap::new(),
         }
+    }
+
+    pub fn is_valid(&self, product: &Product<'_>) -> bool {
+        for (category, option) in self.active.keys() {
+            let category = &self.handle.categories[*category];
+            let option = &category.options[*option];
+            if option.contains(product) == false {
+                return false;
+            }
+        }
+        false
     }
 }
 
@@ -77,11 +88,13 @@ impl CategoryOptionIter {
             .get(self.category_index)?
             .options
             .get(self.index)?;
-        self.index += 1;
-        Some(ExportCategoryOption {
+        let out = Some(ExportCategoryOption {
             name: out.name.clone(),
-            id: out.serialization_id,
-        })
+            cat_id: self.category_index,
+            option_id: self.index,
+        });
+        self.index += 1;
+        out
     }
 
     pub fn name(&self) -> String {
@@ -92,12 +105,22 @@ impl CategoryOptionIter {
 #[wasm_bindgen]
 pub struct ExportCategoryOption {
     name: String,
-    id: usize,
+    cat_id: usize,
+    option_id: usize,
 }
 
 #[wasm_bindgen]
 impl ExportCategoryOption {
     pub fn get_name(&self) -> String {
         self.name.clone()
+    }
+}
+
+impl ExportCategoryOption {
+    pub fn keys(&self) -> (usize, usize) {
+        let ExportCategoryOption {
+            cat_id, option_id, ..
+        } = self;
+        (*cat_id, *option_id)
     }
 }

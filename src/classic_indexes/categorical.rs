@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     data::Product,
     serialize::{Deserializable, Serializable},
@@ -13,8 +15,9 @@ pub struct Category<'a> {
 #[derive(PartialEq, Eq)]
 pub struct CategoryOption<'a> {
     pub name: String,
-    pub content: Vec<&'a Product<'a>>,
     pub serialization_id: usize,
+    content: Vec<&'a Product<'a>>,
+    products_by_serialization_id: HashSet<usize>,
 }
 
 impl<'a> Serializable for Category<'a> {
@@ -76,10 +79,13 @@ impl<'a> Category<'a> {
             let serialization_id = *next_serialization_id;
             *next_serialization_id += 1;
 
+            let products_by_serialization_id = content.iter().map(|p| p.serialization_id).collect();
+
             options.push(CategoryOption {
                 name,
                 content,
                 serialization_id,
+                products_by_serialization_id,
             })
         }
 
@@ -130,7 +136,23 @@ impl<'a> CategoryOption<'a> {
         CategoryOption {
             name,
             content: Vec::new(),
+            products_by_serialization_id: HashSet::new(),
             serialization_id,
         }
+    }
+
+    pub fn add(&mut self, product: &'a Product) {
+        // Insert if not added
+        if self
+            .products_by_serialization_id
+            .insert(product.serialization_id)
+        {
+            self.content.push(product);
+        }
+    }
+
+    pub fn contains(&self, product: &Product<'_>) -> bool {
+        self.products_by_serialization_id
+            .contains(&product.serialization_id)
     }
 }

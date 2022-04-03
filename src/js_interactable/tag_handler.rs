@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use wasm_bindgen::prelude::*;
 
-use crate::classic_indexes::ClassicIndexes;
+use crate::{classic_indexes::ClassicIndexes, data::Product};
 
 #[wasm_bindgen]
 pub struct TagHandler {
@@ -27,6 +27,25 @@ impl TagHandler {
                 space.insert(());
             }
         }
+    }
+}
+
+impl TagHandler {
+    pub fn new(handle: Arc<ClassicIndexes<'static>>) -> TagHandler {
+        TagHandler {
+            handle,
+            active: HashMap::new(),
+        }
+    }
+
+    pub fn is_valid(&self, product: &Product<'_>) -> bool {
+        for id in self.active.keys() {
+            let tag = self.handle.tags.get(*id).unwrap();
+            if tag.contains(product) == false {
+                return false;
+            }
+        }
+        false
     }
 }
 

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     data::Product,
     serialize::{Deserializable, Serializable},
@@ -6,7 +8,8 @@ use crate::{
 #[derive(PartialEq, Eq)]
 pub struct Tag<'a> {
     pub name: String,
-    pub products: Vec<&'a Product<'a>>,
+    products: Vec<&'a Product<'a>>,
+    products_by_serialization_id: HashSet<usize>,
     id: usize,
 }
 
@@ -28,15 +31,22 @@ impl<'a> Serializable for Tag<'a> {
 
 impl<'a> Tag<'a> {
     pub fn new(name: &str, products: Vec<&'a Product<'a>>, id: usize) -> Tag<'a> {
+        let products_by_serialization_id = products.iter().map(|p| p.serialization_id).collect();
         Tag {
             name: name.to_string(),
             products,
+            products_by_serialization_id,
             id,
         }
     }
 
     pub fn get_id(&self) -> usize {
         self.id
+    }
+
+    pub fn contains(&self, product: &Product<'_>) -> bool {
+        self.products_by_serialization_id
+            .contains(&product.serialization_id)
     }
 }
 
@@ -69,7 +79,15 @@ impl<'a> TagIndex<'a> {
                 products.push(product);
             }
 
-            tags.push(Tag { name, products, id })
+            let products_by_serialization_id =
+                products.iter().map(|p| p.serialization_id).collect();
+
+            tags.push(Tag {
+                name,
+                products,
+                id,
+                products_by_serialization_id,
+            })
         }
 
         Some((input, TagIndex { tags }))
