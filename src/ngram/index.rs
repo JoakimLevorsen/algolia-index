@@ -107,7 +107,17 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
         let root_node = self.roots.get(query.get(0)?)?;
         let mut previos = [G::default(); N];
         previos[0] = query[0];
-        Self::recursive_search(&query[1..], root_node, None, 0, 2, 1.0, previos, 1)
+        let changes_limit = (N / 3) as u8;
+        Self::recursive_search(
+            &query[1..],
+            root_node,
+            None,
+            0,
+            changes_limit,
+            1.0,
+            previos,
+            1,
+        )
     }
 
     fn recursive_search(

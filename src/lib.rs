@@ -15,7 +15,8 @@ pub mod preprocessor;
 mod serde_array;
 mod serialize;
 
-type Index = GramIndex<'static, char, Product<'static>, 7>;
+const NGRAM_INDEX_SIZE: usize = 5;
+type Index = GramIndex<'static, char, Product<'static>, NGRAM_INDEX_SIZE>;
 
 lazy_static::lazy_static! {
     static ref SHARED_INDEX: RwLock<Option<Arc<Index>>> = RwLock::new(None);
@@ -101,7 +102,8 @@ pub fn index_and_serialize(
 
     let mut arena = Arena::new();
 
-    let index: GramIndex<char, Product, 5> = GramIndex::index_from(iter, &mut arena, prods);
+    let index: GramIndex<char, Product, NGRAM_INDEX_SIZE> =
+        GramIndex::index_from(iter, &mut arena, prods);
 
     index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
 

@@ -21,6 +21,10 @@ impl CategoryHandler {
         }
     }
 
+    pub fn get_state(&self, item: ExportCategoryOption) -> bool {
+        self.activated.contains_key(&item.id)
+    }
+
     pub fn iter(&self) -> CategoryIter {
         CategoryIter {
             handle: self.handle.clone(),
@@ -78,6 +82,10 @@ impl CategoryOptionIter {
             name: out.name.clone(),
             id: out.serialization_id,
         })
+    }
+
+    pub fn name(&self) -> String {
+        self.handle.categories[self.category_index].name.clone()
     }
 }
 
