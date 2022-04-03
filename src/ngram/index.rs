@@ -266,7 +266,6 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
     let iter = prods.products.iter().map(|p| {
         let Product {
             description,
-            tags,
             title,
             vendor,
             ..
@@ -276,7 +275,6 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
             data: p,
             grams: [description, title, &vendor.name]
                 .into_iter()
-                .chain(tags.iter().map(|t| &t.name))
                 .flat_map(|s| s.chars())
                 .flat_map(|c| c.to_lowercase()),
         }

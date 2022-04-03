@@ -3,30 +3,20 @@ use std::sync::Arc;
 
 use crate::serialize::{ArenaDeserializableCollection, Deserializable, Serializable};
 
-use super::{
-    tags::{Tag, TagManager},
-    vendor::VendorManager,
-    Product,
-};
+use super::{vendor::VendorManager, Product};
 
 #[derive(PartialEq, Eq)]
 pub struct ProductContainer<'a> {
     pub products: Vec<Product<'a>>,
-    pub tags: Arc<TagManager<'a>>,
     pub vendors: Arc<VendorManager<'a>>,
 }
 
 impl<'a> ProductContainer<'a> {
     pub fn new(
         products: Vec<Product<'a>>,
-        tags: Arc<TagManager<'a>>,
         vendors: Arc<VendorManager<'a>>,
     ) -> ProductContainer<'a> {
-        ProductContainer {
-            products,
-            tags,
-            vendors,
-        }
+        ProductContainer { products, vendors }
     }
 
     pub fn deserialize<'input, 'outerarena>(
@@ -37,12 +27,6 @@ impl<'a> ProductContainer<'a> {
         'outerarena: 'a,
         'a: 'input,
     {
-        let tag_arena: &'a Arena<Tag> = super_alloc.alloc(Arena::new());
-        let (input, tags): (&'input [u8], TagManager<'a>) =
-            TagManager::deserialize_arena(input, tag_arena)?;
-
-        let tags = Arc::new(tags);
-
         let (input, vendors) =
             VendorManager::deserialize_arena(input, super_alloc.alloc(Arena::new()))?;
 
@@ -52,33 +36,20 @@ impl<'a> ProductContainer<'a> {
         let (input, products) = {
             let mut products = Vec::new();
             for id in 0..product_count {
-                let (new_input, product) =
-                    Product::deserialize(input, id, tags.clone(), vendors.clone())?;
+                let (new_input, product) = Product::deserialize(input, id, vendors.clone())?;
                 products.push(product);
                 input = new_input;
             }
             (input, products)
         };
 
-        Some((
-            input,
-            ProductContainer {
-                products,
-                tags,
-                vendors,
-            },
-        ))
+        Some((input, ProductContainer { products, vendors }))
     }
 }
 
 impl<'a> Serializable for ProductContainer<'a> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        let ProductContainer {
-            products,
-            tags,
-            vendors,
-        } = self;
-        tags.serialize(output);
+        let ProductContainer { products, vendors } = self;
         vendors.serialize(output);
 
         products.serialize(output);
@@ -98,13 +69,6 @@ impl SuperAlloc {
 
         real_ref
     }
-    // pub fn alloc<'a, T: Any>(&'a self, item: T) -> &'a T {
-    //     let any = self.0.alloc(Box::new(item));
-
-    //     let real_ref = any.downcast_ref().unwrap();
-
-    //     real_ref
-    // }
 
     pub fn alloc_mut<T: Any + Send>(&self, item: T) -> &mut T {
         let any = self.0.alloc(Box::new(item));

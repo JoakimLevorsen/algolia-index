@@ -84,7 +84,6 @@ pub fn index_and_serialize(
     let iter = prods.products.iter().map(|p| {
         let Product {
             description,
-            tags,
             title,
             vendor,
             ..
@@ -94,7 +93,6 @@ pub fn index_and_serialize(
             data: p,
             grams: [description, title, &vendor.name]
                 .into_iter()
-                .chain(tags.iter().map(|t| &t.name))
                 .flat_map(|s| s.chars())
                 .flat_map(|c| c.to_lowercase()),
         }

@@ -5,15 +5,11 @@ use crate::{
     serialize::{Deserializable, Serializable},
 };
 
-use super::{
-    tags::{Tag, TagManager},
-    vendor::{Vendor, VendorManager},
-};
+use super::vendor::{Vendor, VendorManager};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Product<'a> {
     pub description: String,
-    pub tags: Vec<&'a Tag>,
     pub title: String,
     pub vendor: &'a Vendor,
     pub id: String,
@@ -61,7 +57,6 @@ impl Serializable for Product<'_> {
     fn serialize(&self, output: &mut Vec<u8>) {
         let Product {
             description,
-            tags,
             title,
             vendor,
             id,
@@ -74,10 +69,6 @@ impl Serializable for Product<'_> {
 
         // Vendor and tags are just saved as their id's
         vendor.id.serialize(output);
-        tags.len().serialize(output);
-        for tag in tags {
-            tag.id.serialize(output);
-        }
     }
 }
 
@@ -85,7 +76,6 @@ impl<'a> Product<'a> {
     pub fn deserialize<'i>(
         input: &'i [u8],
         serialization_id: usize,
-        tag_manager: Arc<TagManager<'a>>,
         vendors: Arc<VendorManager<'a>>,
     ) -> Option<(&'i [u8], Self)> {
         let (input, description) = String::deserialize(input)?;
@@ -95,21 +85,10 @@ impl<'a> Product<'a> {
         let (input, vendor_id) = usize::deserialize(input)?;
         let vendor = *vendors.by_id.get(vendor_id)?;
 
-        let (input, tags_amount) = usize::deserialize(input)?;
-        let mut tags = Vec::with_capacity(tags_amount);
-
-        let mut input = input;
-        for _ in 0..tags_amount {
-            let (new_input, tag_id) = usize::deserialize(input)?;
-            input = new_input;
-            tags.push(*tag_manager.by_id.get(tag_id)?);
-        }
-
         Some((
             input,
             Product {
                 description,
-                tags,
                 title,
                 vendor,
                 id,

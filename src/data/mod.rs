@@ -1,7 +1,6 @@
 mod container;
 mod product;
 mod raw_parser;
-mod tags;
 mod vendor;
 
 pub use container::{ProductContainer, SuperAlloc};

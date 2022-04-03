@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    classic_indexes::{Category, CategoryOption, ClassicIndexes},
-    data::{tags::TagManager, vendor::VendorManager},
+    classic_indexes::{Category, CategoryOption, ClassicIndexes, TagIndex},
+    data::vendor::VendorManager,
     Product,
 };
 
@@ -28,27 +28,23 @@ pub fn optimize(
     input: Vec<RawProduct>,
     super_alloc: &'static SuperAlloc,
 ) -> (&'static ProductContainer<'static>, ClassicIndexes<'static>) {
-    let mut tag_manager = TagManager::new(super_alloc);
     let mut vendors = VendorManager::new(super_alloc);
 
     // We insert all the tags/vendors
     for product in input.iter() {
-        for tag in &product.tags {
-            tag_manager.insert(tag);
-        }
         vendors.insert(product.vendor);
     }
 
-    let tag_manager = Arc::new(tag_manager);
     let vendors = Arc::new(vendors);
 
     let mut products: Vec<Product<'static>> = Vec::with_capacity(input.len());
 
-    let out = ProductContainer::new(Vec::new(), tag_manager, vendors);
+    let out = ProductContainer::new(Vec::new(), vendors);
 
     let out = super_alloc.alloc_mut(out);
 
     let mut options_list = Vec::with_capacity(input.len());
+    let mut tags_for_product = Vec::new();
     for (
         i,
         RawProduct {
@@ -62,16 +58,12 @@ pub fn optimize(
     ) in input.into_iter().enumerate()
     {
         let my_vendor = out.vendors.get(vendor).unwrap();
-        let mut my_tags = Vec::with_capacity(tags.len());
-        for tag in tags {
-            my_tags.push(out.tags.get(tag).unwrap())
-        }
+        tags_for_product.push(tags);
 
         options_list.push(options);
 
         let p = Product {
             description: description,
-            tags: my_tags,
             vendor: my_vendor,
             title: title,
             id,
@@ -81,6 +73,27 @@ pub fn optimize(
     }
 
     out.products = products;
+
+    let tag_index: TagIndex = {
+        let mut products_for_tag: HashMap<&str, Vec<&Product>> = HashMap::new();
+        for (id, tags) in tags_for_product.into_iter().enumerate() {
+            let product = &out.products[id];
+            for tag in tags {
+                products_for_tag
+                    .entry(tag)
+                    .and_modify(|v| v.push(product))
+                    .or_insert(vec![product]);
+            }
+        }
+
+        TagIndex {
+            tags: products_for_tag
+                .into_iter()
+                .enumerate()
+                .map(|(id, (name, products))| crate::classic_indexes::Tag::new(name, products, id))
+                .collect(),
+        }
+    };
 
     let mut categories: Vec<Category> = Vec::new();
     let mut next_serialization_id = 0;
@@ -114,5 +127,5 @@ pub fn optimize(
         }
     }
 
-    (out, ClassicIndexes::new(categories))
+    (out, ClassicIndexes::new(categories, tag_index))
 }
