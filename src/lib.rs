@@ -84,6 +84,45 @@ pub fn get_tags() -> Option<TagHandler> {
     Some(TagHandler::new(index.clone()))
 }
 
+// Simple string match to find likely tags
+#[wasm_bindgen]
+pub fn tag_suggestion(query: &str) -> Option<js_interactable::JSTag> {
+    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+
+    let index = read_lock.as_ref()?;
+
+    fn overlap(original: &str, other: &str, min_len: usize) -> f32 {
+        let min_len_found = original.len().min(other.len());
+        if min_len_found < min_len {
+            return 0.0;
+        }
+        let min_len_found = min_len_found as f32;
+        let overlap = original
+            .chars()
+            .zip(other.chars())
+            .map(|(a, b)| if a == b { 1 } else { 0 })
+            .reduce(|a, b| a + b)
+            .unwrap_or(0);
+        (overlap as f32) / min_len_found
+    }
+
+    let mut most_likely = None;
+    for keyword in query.split(' ') {
+        for tag in index.tags.tags.iter() {
+            let overlap = overlap(tag.name.as_str(), keyword, 3);
+            if overlap > 0.8 {
+                most_likely = match most_likely {
+                    Some((current, _)) if overlap > current => Some((overlap, tag.get_id())),
+                    None => Some((overlap, tag.get_id())),
+                    current => current,
+                }
+            }
+        }
+    }
+
+    most_likely.map(|(_, tag_id)| js_interactable::JSTag::new(index.clone(), tag_id))
+}
+
 use crate::data::{optimize, RawProduct};
 use crate::ngram::IndexFeed;
 

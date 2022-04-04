@@ -82,7 +82,11 @@ impl JSTag {
 }
 
 impl JSTag {
-    fn get_id(&self) -> usize {
+    pub fn get_id(&self) -> usize {
         self.handle.tags.get(self.index).unwrap().get_id()
+    }
+
+    pub fn new(handle: Arc<ClassicIndexes<'static>>, index: usize) -> JSTag {
+        JSTag { handle, index }
     }
 }
