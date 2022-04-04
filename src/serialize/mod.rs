@@ -5,6 +5,7 @@ mod primitives;
 mod traits;
 
 pub use all_indexes::{deserialize_all, serialize_all};
+pub use collections::serialize_string_with_limit;
 pub use traits::*;
 
 #[cfg(test)]

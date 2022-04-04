@@ -74,12 +74,52 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
     }
 }
 
-impl Serializable for String {
+impl Serializable for &'_ str {
     fn serialize(&self, output: &mut Vec<u8>) {
         (self.len() as u64).serialize(output);
         for item in self.bytes() {
             output.push(item)
         }
+    }
+}
+
+impl Serializable for String {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        self.as_str().serialize(output)
+    }
+}
+
+fn limit_string_len(input: &str, max_len: usize) -> &str {
+    let mut last_candidate = None;
+    for (offset, char) in input.char_indices() {
+        if offset > max_len {
+            // Then we return either the last viable candidate, or now
+            return match last_candidate {
+                Some(viable) => &input[0..viable],
+                None => &input[0..offset],
+            };
+        }
+        if char == ' ' {
+            last_candidate = Some(offset);
+        }
+    }
+    input
+}
+
+pub fn serialize_string_with_limit(input: &str, max_len: usize, output: &mut Vec<u8>) {
+    limit_string_len(input, max_len).serialize(output)
+}
+
+#[test]
+fn test() {
+    for str in [
+        "",
+        "asudfhj asiudf",
+        "as ias ias is a",
+        "oai aisæø øåæå",
+        "👽 👽 👽👽 👽👽",
+    ] {
+        println!("'{}'", limit_string_len(str, 12))
     }
 }
 

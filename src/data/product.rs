@@ -7,7 +7,7 @@ use crate::{
 
 use super::vendor::{Vendor, VendorManager};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Product<'a> {
     pub description: String,
     pub title: String,
@@ -29,6 +29,37 @@ impl Product<'_> {
             multiplier *= 10;
         }
         out
+    }
+}
+
+impl Eq for Product<'_> {}
+
+impl PartialEq for Product<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        // Descriptions might be of different length after serialization, so we just need the beginning to match
+        match (self.description.len(), other.description.len()) {
+            (0, 1..) | (1.., 0) => return false,
+            (my_len, other_len) if my_len > other_len => {
+                if self.description.starts_with(&other.description) == false {
+                    return false;
+                }
+            }
+            (my_len, other_len) if my_len < other_len => {
+                if other.description.starts_with(&self.description) == false {
+                    return false;
+                }
+            }
+            _ => {
+                if self.description != other.description {
+                    return false;
+                }
+            }
+        }
+
+        self.title == other.title
+            && self.vendor == other.vendor
+            && self.id == other.id
+            && self.serialization_id == other.serialization_id
     }
 }
 
@@ -63,7 +94,8 @@ impl Serializable for Product<'_> {
             ..
         } = self;
 
-        for field in [description, title, id] {
+        crate::serialize::serialize_string_with_limit(description, 100, output);
+        for field in [title, id] {
             field.serialize(output)
         }
 
