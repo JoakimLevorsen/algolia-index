@@ -1,4 +1,6 @@
-use std::{collections::HashMap, hash::Hash};
+use std::hash::Hash;
+
+use ahash::AHashMap;
 
 use crate::Product;
 
@@ -25,7 +27,7 @@ impl HashExtractable for String {
 }
 
 pub struct ResultRanker<'a, H, Data: HashExtractable<Inner = H>> {
-    confidence_for_data: HashMap<&'a H, (&'a Data, f32)>,
+    confidence_for_data: AHashMap<&'a H, (&'a Data, f32)>,
 }
 
 impl<'a, H: Hash + Eq, Data: HashExtractable<Inner = H>> ResultRanker<'a, H, Data> {
@@ -52,7 +54,7 @@ impl<'a, H: Hash + Eq, Data: HashExtractable<Inner = H>> ResultRanker<'a, H, Dat
 
     pub fn new() -> ResultRanker<'a, H, Data> {
         ResultRanker {
-            confidence_for_data: HashMap::new(),
+            confidence_for_data: AHashMap::new(),
         }
     }
 }

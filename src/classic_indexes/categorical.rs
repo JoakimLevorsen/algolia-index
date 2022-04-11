@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use ahash::AHashSet;
 
 use crate::{
     data::Product,
@@ -17,7 +17,7 @@ pub struct CategoryOption<'a> {
     pub name: String,
     pub serialization_id: usize,
     content: Vec<&'a Product<'a>>,
-    products_by_serialization_id: HashSet<usize>,
+    products_by_serialization_id: AHashSet<usize>,
 }
 
 impl<'a> Serializable for Category<'a> {
@@ -115,7 +115,7 @@ impl<'a> CategoryOption<'a> {
         CategoryOption {
             name,
             content: Vec::new(),
-            products_by_serialization_id: HashSet::new(),
+            products_by_serialization_id: AHashSet::new(),
             serialization_id,
         }
     }

@@ -1,12 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::{classic_indexes::ClassicIndexes, data::Product};
+use ahash::AHashMap;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct CategoryHandler {
     handle: Arc<ClassicIndexes<'static>>,
-    active: HashMap<(usize, usize), ()>,
+    active: AHashMap<(usize, usize), ()>,
 }
 
 #[wasm_bindgen]
@@ -37,7 +38,7 @@ impl CategoryHandler {
     pub fn new(handle: Arc<ClassicIndexes<'static>>) -> CategoryHandler {
         CategoryHandler {
             handle,
-            active: HashMap::new(),
+            active: AHashMap::new(),
         }
     }
 

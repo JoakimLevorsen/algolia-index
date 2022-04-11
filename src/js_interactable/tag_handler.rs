@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use ahash::AHashMap;
 use wasm_bindgen::prelude::*;
 
 use crate::{classic_indexes::ClassicIndexes, data::Product};
@@ -7,7 +8,7 @@ use crate::{classic_indexes::ClassicIndexes, data::Product};
 #[wasm_bindgen]
 pub struct TagHandler {
     handle: Arc<ClassicIndexes<'static>>,
-    active: HashMap<usize, ()>,
+    active: AHashMap<usize, ()>,
 }
 
 #[wasm_bindgen]
@@ -34,7 +35,7 @@ impl TagHandler {
     pub fn new(handle: Arc<ClassicIndexes<'static>>) -> TagHandler {
         TagHandler {
             handle,
-            active: HashMap::new(),
+            active: AHashMap::new(),
         }
     }
 

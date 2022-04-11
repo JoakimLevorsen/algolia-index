@@ -1,4 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
+
+use ahash::AHashMap;
 
 use crate::{
     classic_indexes::{Category, CategoryOption, ClassicIndexes, TagIndex},
@@ -75,7 +77,7 @@ pub fn optimize(
     out.products = products;
 
     let tag_index: TagIndex = {
-        let mut products_for_tag: HashMap<&str, Vec<&Product>> = HashMap::new();
+        let mut products_for_tag: AHashMap<&str, Vec<&Product>> = AHashMap::new();
         for (id, tags) in tags_for_product.into_iter().enumerate() {
             let product = &out.products[id];
             for tag in tags {

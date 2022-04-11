@@ -27,12 +27,12 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
         ngram::{GramIndex, IndexFeed},
         Product, SuperAlloc,
     };
+    use ahash::AHashMap;
     use colosseum::sync::Arena;
-    use std::collections::HashMap;
 
     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, RawProduct> = serde_json::from_str(&file)?;
+    let products: AHashMap<String, RawProduct> = serde_json::from_str(&file)?;
 
     let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
 

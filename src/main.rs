@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use ahash::AHashMap;
 use indexer_lib::{
     data::{RawProduct, SuperAlloc},
     index_and_serialize,
@@ -12,7 +11,7 @@ lazy_static::lazy_static! {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, RawProduct> = serde_json::from_str(&file)?;
+    let products: AHashMap<String, RawProduct> = serde_json::from_str(&file)?;
 
     let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
 

@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use ahash::AHashMap;
 use colosseum::sync::Arena;
 
 use crate::{
@@ -37,7 +36,7 @@ impl<'arena, G: GramAtom> ArenaDeserializable<'arena, Self> for GramNode<'arena,
         let (input, item) = <G as Deserializable>::deserialize(input)?;
         let (input, weight) = f32::deserialize(input)?;
         let (input, by_occurances) = Vec::deserialize_arena(input, arena)?;
-        let items = by_occurances.iter().fold(HashMap::new(), |mut map, item| {
+        let items = by_occurances.iter().fold(AHashMap::new(), |mut map, item| {
             map.insert(item.item, *item);
             map
         });
@@ -57,7 +56,7 @@ impl<G: GramAtom, const N: usize> Serializable for GramIndex<'_, G, Product<'_>,
         self.product_container.serialize(output);
         self.roots.serialize(output);
         // We replace the product refs with their serialization id
-        let data: HashMap<[G; N], Vec<usize>> = self
+        let data: AHashMap<[G; N], Vec<usize>> = self
             .data
             .iter()
             .map(|(k, v)| (*k, v.iter().map(|p| p.serialization_id).collect()))
@@ -78,12 +77,12 @@ impl<'arena, G: GramAtom, const N: usize> GramIndex<'arena, G, Product<'arena>, 
     {
         let (input, container) = ProductContainer::deserialize(input, super_alloc)?;
         let container = super_alloc.alloc(container);
-        let (input, roots) = HashMap::deserialize_arena(input, node_arena)?;
+        let (input, roots) = AHashMap::deserialize_arena(input, node_arena)?;
         // We make the ref array
-        let (input, bin_data) = HashMap::<[G; N], Vec<usize>>::deserialize(input)?;
+        let (input, bin_data) = AHashMap::<[G; N], Vec<usize>>::deserialize(input)?;
 
         // We then transform this data based on the data container
-        let mut data = HashMap::with_capacity(bin_data.len());
+        let mut data = AHashMap::with_capacity(bin_data.len());
         for (k, v) in bin_data.into_iter() {
             let mut products = Vec::with_capacity(v.len());
             for v in v {

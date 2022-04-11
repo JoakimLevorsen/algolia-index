@@ -1,9 +1,6 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, VecDeque},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
+use ahash::AHashMap;
 use colosseum::sync::Arena;
 
 use crate::data::ProductContainer;
@@ -14,7 +11,7 @@ use super::{GramAtom, GramIndex, GramNode, IndexFeed};
 struct InnerMutableGramNode<G: GramAtom> {
     item: G,
     occurances: u32,
-    items: HashMap<G, MutableGramNode<G>>,
+    items: AHashMap<G, MutableGramNode<G>>,
 }
 
 fn occurances_to_weight(total: u32, this: u32) -> f32 {
@@ -37,7 +34,7 @@ impl<G: GramAtom> MutableGramNode<G> {
         MutableGramNode(Rc::new(RefCell::new(InnerMutableGramNode {
             item,
             occurances,
-            items: HashMap::new(),
+            items: AHashMap::new(),
         })))
     }
 
@@ -58,12 +55,13 @@ impl<G: GramAtom> MutableGramNode<G> {
 
         by_occurances.sort_by(|a, b| a.cmp(&b).reverse());
 
-        let items = by_occurances
-            .iter()
-            .fold(HashMap::with_capacity(children), |mut map, item| {
-                map.insert(item.item, *item);
-                map
-            });
+        let items =
+            by_occurances
+                .iter()
+                .fold(AHashMap::with_capacity(children), |mut map, item| {
+                    map.insert(item.item, *item);
+                    map
+                });
 
         arena.alloc(GramNode {
             item: me.item,
@@ -84,8 +82,8 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         I: Iterator<Item = G> + Clone,
         S: Iterator<Item = IndexFeed<'arena, G, I, Data>>,
     {
-        let mut root: HashMap<G, MutableGramNode<G>> = HashMap::new();
-        let mut data_map: HashMap<[G; N], Vec<&'arena Data>> = HashMap::new();
+        let mut root: AHashMap<G, MutableGramNode<G>> = AHashMap::new();
+        let mut data_map: AHashMap<[G; N], Vec<&'arena Data>> = AHashMap::new();
         for IndexFeed { grams, data } in source_iter {
             let mut queue: VecDeque<MutableGramNode<G>> = VecDeque::with_capacity(N + 1);
 
@@ -145,7 +143,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
             .unwrap_or(0);
 
         // We then transform the mutable tree into an immutable tree with no access control
-        let roots: HashMap<G, &'arena GramNode<'arena, G>> = root
+        let roots: AHashMap<G, &'arena GramNode<'arena, G>> = root
             .into_iter()
             .map(|(k, v)| (k, v.immutalize(total_root_occurances, node_arena)))
             .collect();

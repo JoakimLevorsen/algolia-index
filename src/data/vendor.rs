@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use ahash::AHashMap;
 use colosseum::sync::Arena;
 
 use crate::serialize::{ArenaDeserializableCollection, Deserializable, Serializable};
@@ -13,7 +12,7 @@ pub struct Vendor {
 }
 
 pub struct VendorManager<'a> {
-    tags: HashMap<&'a str, &'a Vendor>,
+    tags: AHashMap<&'a str, &'a Vendor>,
     pub by_id: Vec<&'a Vendor>,
     alloc: &'a Arena<Vendor>,
 }
@@ -62,7 +61,7 @@ impl<'a> VendorManager<'a> {
     pub fn new(alloc: &'a SuperAlloc) -> VendorManager<'a> {
         let alloc = alloc.alloc(Arena::new());
         VendorManager {
-            tags: HashMap::new(),
+            tags: AHashMap::new(),
             by_id: Vec::new(),
             alloc,
         }
@@ -98,7 +97,7 @@ impl<'arena> ArenaDeserializableCollection<'arena, Vendor> for VendorManager<'ar
         'arena: 'input,
     {
         let (mut input, len) = usize::deserialize(input)?;
-        let mut tags = HashMap::with_capacity(len);
+        let mut tags = AHashMap::with_capacity(len);
         let mut by_id = Vec::with_capacity(len);
         for id in 0..len {
             let (new_input, name) = String::deserialize(input)?;

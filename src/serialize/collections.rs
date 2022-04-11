@@ -1,5 +1,6 @@
-use std::{collections::HashMap, hash::Hash};
+use std::hash::Hash;
 
+use ahash::AHashMap;
 use colosseum::sync::Arena;
 
 use super::{
@@ -133,7 +134,7 @@ impl Deserializable for String {
     }
 }
 
-impl<K: Serializable, V: Serializable> Serializable for HashMap<K, V> {
+impl<K: Serializable, V: Serializable> Serializable for AHashMap<K, V> {
     fn serialize(&self, output: &mut Vec<u8>) {
         (self.len() as u64).serialize(output);
         for (key, value) in self.iter() {
@@ -143,7 +144,7 @@ impl<K: Serializable, V: Serializable> Serializable for HashMap<K, V> {
     }
 }
 
-impl<'arena, K, V> ArenaDeserializableCollection<'arena, V> for HashMap<K, &'arena V>
+impl<'arena, K, V> ArenaDeserializableCollection<'arena, V> for AHashMap<K, &'arena V>
 where
     K: Deserializable + Eq + Hash,
     V: ArenaDeserializable<'arena, V>,
@@ -156,7 +157,7 @@ where
         'arena: 'input,
     {
         let (mut input, len) = u64::deserialize(input)?;
-        let mut out = HashMap::with_capacity(len.try_into().unwrap());
+        let mut out = AHashMap::with_capacity(len.try_into().unwrap());
         for _ in 0..len {
             let (new_input, key) = K::deserialize(input)?;
             let (new_input, value) = V::deserialize_arena(new_input, arena)?;
@@ -167,10 +168,10 @@ where
     }
 }
 
-impl<K: Deserializable + Eq + Hash, V: Deserializable> Deserializable for HashMap<K, V> {
+impl<K: Deserializable + Eq + Hash, V: Deserializable> Deserializable for AHashMap<K, V> {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
         let (mut input, len) = u64::deserialize(input)?;
-        let mut out = HashMap::with_capacity(len.try_into().unwrap());
+        let mut out = AHashMap::with_capacity(len.try_into().unwrap());
         for _ in 0..len {
             let (new_input, key) = K::deserialize(input)?;
             let (new_input, value) = V::deserialize(new_input)?;

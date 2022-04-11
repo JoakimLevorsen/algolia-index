@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use ahash::AHashSet;
 
 use crate::{
     data::Product,
@@ -9,7 +9,7 @@ use crate::{
 pub struct Tag<'a> {
     pub name: String,
     products: Vec<&'a Product<'a>>,
-    products_by_serialization_id: HashSet<usize>,
+    products_by_serialization_id: AHashSet<usize>,
     id: usize,
 }
 

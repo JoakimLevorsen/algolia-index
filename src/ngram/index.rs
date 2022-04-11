@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash};
+
+use ahash::AHashMap;
 
 use crate::{
     data::ProductContainer,
@@ -27,7 +29,7 @@ pub struct GramNode<'data, G: GramAtom> {
     pub item: G,
     pub weight: f32,
     pub by_occurances: Vec<&'data GramNode<'data, G>>,
-    pub items: HashMap<G, &'data GramNode<'data, G>>,
+    pub items: AHashMap<G, &'data GramNode<'data, G>>,
 }
 
 impl<G: GramAtom> Eq for GramNode<'_, G> {}
@@ -49,8 +51,8 @@ impl<G: GramAtom> PartialOrd for GramNode<'_, G> {
 #[derive(PartialEq, Eq)]
 pub struct GramIndex<'a, G: GramAtom, Data: Ord, const N: usize = 8> {
     // Note we don't need popularity since we'll search for all parts of the gram
-    pub roots: HashMap<G, &'a GramNode<'a, G>>,
-    pub data: HashMap<[G; N], Vec<&'a Data>>,
+    pub roots: AHashMap<G, &'a GramNode<'a, G>>,
+    pub data: AHashMap<[G; N], Vec<&'a Data>>,
     pub product_container: &'a ProductContainer<'a>,
 }
 
@@ -105,8 +107,8 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
 
     pub fn search_gram(&self, query: [G; N]) -> Option<([G; N], f32)> {
         let root_node = self.roots.get(query.get(0)?)?;
-        let mut previos = [G::default(); N];
-        previos[0] = query[0];
+        let mut previous = [G::default(); N];
+        previous[0] = query[0];
         let changes_limit = (N / 3) as u8;
         Self::recursive_search(
             &query[1..],
@@ -115,7 +117,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
             0,
             changes_limit,
             1.0,
-            previos,
+            previous,
             1,
         )
     }
@@ -253,7 +255,7 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
 
     let file = std::fs::read_to_string("./test.json")?;
 
-    let products: HashMap<String, RawProduct> = serde_json::from_str(&file)?;
+    let products: AHashMap<String, RawProduct> = serde_json::from_str(&file)?;
 
     let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
 
