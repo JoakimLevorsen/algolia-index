@@ -18,6 +18,8 @@ fn occurances_to_weight(total: u32, this: u32) -> f32 {
     (this as f32) / (total as f32)
 }
 
+const DATA_CUTOFF_PERCENTAGE: f32 = 0.8;
+
 #[derive(Clone)]
 struct MutableGramNode<G: GramAtom>(Rc<RefCell<InnerMutableGramNode<G>>>);
 
@@ -147,6 +149,18 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
             .into_iter()
             .map(|(k, v)| (k, v.immutalize(total_root_occurances, node_arena)))
             .collect();
+
+        // We remove the data if it contains more than DATA_CUTOFF percent of products, since it doesn't carry enough information
+        let products_amount = product_container.products.len();
+        let maximum_product_amount = (products_amount as f32) * DATA_CUTOFF_PERCENTAGE;
+        let maximum_product_amount = maximum_product_amount as usize;
+        data_map.retain(|_, data| {
+            if data.len() < maximum_product_amount {
+                true
+            } else {
+                false
+            }
+        });
 
         // We also sort the data for easier access later
         for (_, data) in data_map.iter_mut() {
