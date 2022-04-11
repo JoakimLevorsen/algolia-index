@@ -1,3 +1,6 @@
+#![allow(clippy::bool_comparison)]
+#![allow(clippy::unused_unit)]
+
 use std::sync::{Arc, RwLock};
 
 use classic_indexes::ClassicIndexes;
@@ -149,10 +152,10 @@ pub fn index_and_serialize(
         }
     });
 
-    let mut arena = Arena::new();
+    let arena = Arena::new();
 
     let index: GramIndex<char, Product, NGRAM_INDEX_SIZE> =
-        GramIndex::index_from(iter, &mut arena, prods);
+        GramIndex::index_from(iter, &arena, prods);
 
     index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
 

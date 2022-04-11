@@ -22,7 +22,7 @@ impl HashExtractable for String {
     type Inner = String;
 
     fn extract(&self) -> &Self::Inner {
-        &self
+        self
     }
 }
 

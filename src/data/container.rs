@@ -70,6 +70,7 @@ impl SuperAlloc {
         real_ref
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub fn alloc_mut<T: Any + Send>(&self, item: T) -> &mut T {
         let any = self.0.alloc(Box::new(item));
 
@@ -80,5 +81,11 @@ impl SuperAlloc {
 
     pub fn new() -> SuperAlloc {
         SuperAlloc(Arena::new())
+    }
+}
+
+impl Default for SuperAlloc {
+    fn default() -> Self {
+        Self::new()
     }
 }

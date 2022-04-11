@@ -62,7 +62,7 @@ pub struct CategoryIter {
 
 #[wasm_bindgen]
 impl CategoryIter {
-    pub fn next(&mut self) -> Option<CategoryOptionIter> {
+    pub fn next_item(&mut self) -> Option<CategoryOptionIter> {
         self.handle.categories.get(self.index)?;
         self.index += 1;
         Some(CategoryOptionIter {
@@ -82,7 +82,7 @@ pub struct CategoryOptionIter {
 
 #[wasm_bindgen]
 impl CategoryOptionIter {
-    pub fn next(&mut self) -> Option<ExportCategoryOption> {
+    pub fn next_item(&mut self) -> Option<ExportCategoryOption> {
         let out = self
             .handle
             .categories

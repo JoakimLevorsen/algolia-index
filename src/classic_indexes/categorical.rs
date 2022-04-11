@@ -41,7 +41,7 @@ impl<'a> Serializable for Category<'a> {
 impl<'a> Category<'a> {
     pub fn deserialize<'i>(
         input: &'i [u8],
-        all_products: &'a Vec<Product<'a>>,
+        all_products: &'a [Product<'a>],
         next_serialization_id: &mut usize,
     ) -> Option<(&'i [u8], Category<'a>)> {
         let (input, exclusive) = bool::deserialize(input)?;
@@ -53,7 +53,7 @@ impl<'a> Category<'a> {
             let (input_after_name, name) = String::deserialize(input)?;
 
             let (new_input, products, product_ids) =
-                Product::deserialize_from_sequential_ids(input_after_name, &all_products)?;
+                Product::deserialize_from_sequential_ids(input_after_name, all_products)?;
 
             let serialization_id = *next_serialization_id;
             *next_serialization_id += 1;
@@ -80,21 +80,21 @@ impl<'a> Category<'a> {
 
     pub fn deserialize_many<'i>(
         input: &'i [u8],
-        products: &'a Vec<Product<'a>>,
+        products: &'a [Product<'a>],
     ) -> Option<(&'i [u8], Vec<Category<'a>>)> {
         let (mut input, len) = usize::deserialize(input)?;
         let mut cats = Vec::with_capacity(len);
         let mut next_option_serialization_id = 0;
         for _ in 0..len {
             let (new_input, cat) =
-                Category::deserialize(input, &products, &mut next_option_serialization_id)?;
+                Category::deserialize(input, products, &mut next_option_serialization_id)?;
             input = new_input;
             cats.push(cat);
         }
         Some((input, cats))
     }
 
-    pub fn serialize_many(input: &Vec<Category<'a>>, output: &mut Vec<u8>) {
+    pub fn serialize_many(input: &[Category<'a>], output: &mut Vec<u8>) {
         input.len().serialize(output);
         for cat in input.iter() {
             cat.serialize(output);

@@ -65,9 +65,9 @@ pub fn optimize(
         options_list.push(options);
 
         let p = Product {
-            description: description,
+            description,
             vendor: my_vendor,
-            title: title,
+            title,
             id,
             serialization_id: i,
         };
@@ -84,7 +84,7 @@ pub fn optimize(
                 products_for_tag
                     .entry(tag)
                     .and_modify(|v| v.push(product))
-                    .or_insert(vec![product]);
+                    .or_insert_with(|| vec![product]);
             }
         }
 

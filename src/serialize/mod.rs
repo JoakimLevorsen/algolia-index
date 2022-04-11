@@ -59,9 +59,9 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let mut arena = Arena::new();
+    let arena = Arena::new();
 
-    let index: GramIndex<char, Product, 8> = GramIndex::index_from(iter, &mut arena, prods);
+    let index: GramIndex<char, Product, 8> = GramIndex::index_from(iter, &arena, prods);
 
     // We then serialize and deserialize
     let buff = serialize_all(&index, &classic);

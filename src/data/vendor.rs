@@ -42,7 +42,7 @@ impl<'a> VendorManager<'a> {
     }
 
     pub fn get(&'a self, name: &str) -> Option<&'a Vendor> {
-        self.tags.get(name).map(|v| *v)
+        self.tags.get(name).copied()
     }
 
     pub fn insert(&mut self, name: &str) {

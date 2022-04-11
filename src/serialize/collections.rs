@@ -197,10 +197,10 @@ impl<T: Default + Deserializable + Copy, const N: usize> DeserializableCollectio
         let len: usize = len.try_into().unwrap();
         assert!(len == N);
         let mut out = [T::default(); N];
-        for i in 0..len {
+        for position in out.iter_mut().take(len) {
             let (new_input, item) = T::deserialize(input)?;
             input = new_input;
-            out[i] = item;
+            *position = item;
         }
         Some((input, out))
     }
@@ -212,10 +212,10 @@ impl<T: Default + Deserializable + Copy, const N: usize> Deserializable for [T; 
         let len: usize = len.try_into().unwrap();
         assert!(len == N);
         let mut out = [T::default(); N];
-        for i in 0..len {
+        for position in out.iter_mut().take(len) {
             let (new_input, item) = T::deserialize(input)?;
             input = new_input;
-            out[i] = item;
+            *position = item;
         }
         Some((input, out))
     }

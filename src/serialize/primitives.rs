@@ -27,8 +27,8 @@ impl Serializable for f32 {
 impl Deserializable for f32 {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
         let mut bytes = [0; 4];
-        for i in 0..4 {
-            bytes[i] = *input.get(i)?
+        for (i, item) in bytes.iter_mut().enumerate() {
+            *item = *input.get(i)?
         }
         let num = Self::from_be_bytes(bytes);
         Some((&input[4..], num))
@@ -73,7 +73,7 @@ impl Deserializable for u64 {
         let mut eaten = 0;
 
         // We eat all the bytes that start with 1
-        while input.len() > 0 && eaten < 9 {
+        while input.is_empty() == false && eaten < 9 {
             // We shift the 7 data bits forwards, so they're all in front
             let byte = input[0];
             let more_bytes = byte & 0b1000_0000 == 0b1000_0000;
@@ -99,7 +99,7 @@ impl Deserializable for u64 {
         if eaten == 9 {
             out >>= 1;
             if *input.get(0)? == 1 {
-                out |= 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+                out |= 0b1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
             }
             input = &input[1..];
             Some((input, out))
@@ -137,7 +137,7 @@ mod tests {
         input.serialize(&mut bytes);
         let (remaining_bytes, output) = T::deserialize(&bytes[..]).unwrap();
         assert!(
-            remaining_bytes.len() == 0,
+            remaining_bytes.is_empty(),
             "Not all bytes consumed for {input:?}"
         );
         output

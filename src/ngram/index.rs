@@ -122,6 +122,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn recursive_search(
         input: &[G],
         node: &GramNode<'_, G>,
@@ -150,12 +151,12 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
             }
         };
 
-        let user_entered = input.get(0).map(|gram| node.items.get(gram)).flatten();
-        let user_entered_gram = user_entered.clone().map(|v| v.item);
+        let user_entered = input.get(0).and_then(|gram| node.items.get(gram));
+        let user_entered_gram = user_entered.map(|v| v.item);
 
         let mut most_likely = None;
 
-        let next_input = if input.len() == 0 { &[] } else { &input[1..] };
+        let next_input = if input.is_empty() { &[] } else { &input[1..] };
 
         // We try the current options, on the current node
         if let Some(user_entered) = user_entered {
@@ -187,7 +188,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                 .iter()
                 // We only want grams that do not match the
                 .filter(|potential| Some(potential.item) != user_entered_gram)
-                .map(|v| *v);
+                .copied();
 
             for next_node in most_popular {
                 let mut previous_input = previous_input;
@@ -282,9 +283,9 @@ fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let mut arena = Arena::new();
+    let arena = Arena::new();
 
-    let _: GramIndex<char, Product, 7> = GramIndex::index_from(iter, &mut arena, prods);
+    let _: GramIndex<char, Product, 5> = GramIndex::index_from(iter, &arena, prods);
 
     Ok(())
 }

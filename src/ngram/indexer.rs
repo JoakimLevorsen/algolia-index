@@ -55,7 +55,7 @@ impl<G: GramAtom> MutableGramNode<G> {
             .map(|(_, v)| v.immutalize(me.occurances, arena))
             .collect();
 
-        by_occurances.sort_by(|a, b| a.cmp(&b).reverse());
+        by_occurances.sort_by(|a, b| a.cmp(b).reverse());
 
         let items =
             by_occurances
@@ -134,7 +134,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                 data_map
                     .entry(lookback)
                     .and_modify(|vec| vec.push(data))
-                    .or_insert(vec![data]);
+                    .or_insert_with(|| vec![data]);
             }
         }
 
@@ -154,13 +154,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
         let products_amount = product_container.products.len();
         let maximum_product_amount = (products_amount as f32) * DATA_CUTOFF_PERCENTAGE;
         let maximum_product_amount = maximum_product_amount as usize;
-        data_map.retain(|_, data| {
-            if data.len() < maximum_product_amount {
-                true
-            } else {
-                false
-            }
-        });
+        data_map.retain(|_, data| data.len() < maximum_product_amount);
 
         // We also sort the data for easier access later
         for (_, data) in data_map.iter_mut() {

@@ -58,7 +58,7 @@ pub struct TagIter {
 
 #[wasm_bindgen]
 impl TagIter {
-    pub fn next(&mut self) -> Option<JSTag> {
+    pub fn next_tag(&mut self) -> Option<JSTag> {
         let _ = self.handle.tags.get(self.index)?;
         let tag = JSTag {
             handle: self.handle.clone(),

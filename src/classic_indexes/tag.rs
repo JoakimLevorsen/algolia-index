@@ -58,7 +58,7 @@ impl<'a> Serializable for TagIndex<'a> {
 impl<'a> TagIndex<'a> {
     pub fn deserialize<'i>(
         input: &'i [u8],
-        existing_products: &'a Vec<Product<'a>>,
+        existing_products: &'a [Product<'a>],
     ) -> Option<(&'i [u8], TagIndex<'a>)> {
         let (input, tag_len) = usize::deserialize(input)?;
         let mut input = input;
