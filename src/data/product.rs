@@ -72,7 +72,7 @@ impl<'a> PartialOrd for Product<'a> {
 impl Ord for Product<'_> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // TODO: Improve
-        self.id.cmp(&other.id)
+        self.serialization_id.cmp(&other.serialization_id)
     }
 }
 

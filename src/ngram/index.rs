@@ -77,17 +77,17 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                 ngram[i - 1] = ngram[i];
             }
             ngram[N - 1] = gram;
-            match self.search_gram(ngram) {
-                Some((ngram, confidence)) => match self.data.get(&ngram) {
-                    Some(data) => {
-                        for data in data {
-                            results.add(*data, confidence)
-                        }
-                    }
-                    None => continue,
-                },
+            let (ngram, confidence) = match self.search_gram(ngram) {
+                Some(v) => v,
                 None => continue,
             };
+            let data = match self.data.get(&ngram) {
+                Some(v) => v,
+                None => continue,
+            };
+            for data in data {
+                results.add(*data, confidence)
+            }
         }
         results.export_data_by_confidence()
     }

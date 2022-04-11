@@ -55,13 +55,13 @@ impl<G: GramAtom, const N: usize> Serializable for GramIndex<'_, G, Product<'_>,
     fn serialize(&self, output: &mut Vec<u8>) {
         self.product_container.serialize(output);
         self.roots.serialize(output);
-        // We replace the product refs with their serialization id
-        let data: AHashMap<[G; N], Vec<usize>> = self
-            .data
-            .iter()
-            .map(|(k, v)| (*k, v.iter().map(|p| p.serialization_id).collect()))
-            .collect();
-        data.serialize(output);
+
+        // We replace the product refs with their serialization id and save as a sequential array
+        self.data.len().serialize(output);
+        for (key, products) in self.data.iter() {
+            key.serialize(output);
+            Product::serialize_to_sequential_array(products, output);
+        }
     }
 }
 
@@ -78,18 +78,17 @@ impl<'arena, G: GramAtom, const N: usize> GramIndex<'arena, G, Product<'arena>, 
         let (input, container) = ProductContainer::deserialize(input, super_alloc)?;
         let container = super_alloc.alloc(container);
         let (input, roots) = AHashMap::deserialize_arena(input, node_arena)?;
-        // We make the ref array
-        let (input, bin_data) = AHashMap::<[G; N], Vec<usize>>::deserialize(input)?;
 
-        // We then transform this data based on the data container
-        let mut data = AHashMap::with_capacity(bin_data.len());
-        for (k, v) in bin_data.into_iter() {
-            let mut products = Vec::with_capacity(v.len());
-            for v in v {
-                products.push(container.products.get(v)?)
-            }
-            data.insert(k, products);
+        let (mut input, data_len) = usize::deserialize(input)?;
+        let mut data = AHashMap::with_capacity(data_len);
+        for _ in 0..data_len {
+            let (next_input, gram) = <[G; N]>::deserialize(input)?;
+            let (next_input, products, _) =
+                Product::deserialize_from_sequential_ids(next_input, &container.products)?;
+            input = next_input;
+            data.insert(gram, products);
         }
+
         Some((
             input,
             GramIndex {
