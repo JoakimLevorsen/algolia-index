@@ -32,16 +32,8 @@ impl<'a> Serializable for Category<'a> {
         options.len().serialize(output);
         for option in options {
             option.name.serialize(output);
-            option.content.len().serialize(output);
-            // We take the serialization ids, sort them, and save them as the difference from the previous id, this is because smaller numbers save more efficiently
-            let mut products: Vec<_> = option.content.iter().map(|p| p.serialization_id).collect();
-            products.sort();
-            let mut last = None;
-            for id in products {
-                let id = if let Some(last) = last { id - last } else { id };
-                id.serialize(output);
-                last = Some(id);
-            }
+
+            Product::serialize_to_sequential_array(&option.content, output);
         }
     }
 }
@@ -59,33 +51,20 @@ impl<'a> Category<'a> {
         let mut options = Vec::with_capacity(options_len);
         for _ in 0..options_len {
             let (input_after_name, name) = String::deserialize(input)?;
-            let (input_after_len, products_len) = usize::deserialize(input_after_name)?;
-            input = input_after_len;
-            let mut content = Vec::with_capacity(products_len);
-            let mut last = None;
-            for _ in 0..products_len {
-                let (new_input, found) = usize::deserialize(input)?;
-                input = new_input;
-                let id = if let Some(last) = last {
-                    last + found
-                } else {
-                    found
-                };
-                // Then we insert a reference to the offset as the product
-                content.push(all_products.get(id)?);
-                last = Some(found);
-            }
+
+            let (new_input, products, product_ids) =
+                Product::deserialize_from_sequential_ids(input_after_name, &all_products)?;
 
             let serialization_id = *next_serialization_id;
             *next_serialization_id += 1;
 
-            let products_by_serialization_id = content.iter().map(|p| p.serialization_id).collect();
+            input = new_input;
 
             options.push(CategoryOption {
                 name,
-                content,
+                content: products,
                 serialization_id,
-                products_by_serialization_id,
+                products_by_serialization_id: product_ids.into_iter().collect(),
             })
         }
 

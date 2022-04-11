@@ -4,6 +4,8 @@ mod nodes;
 mod primitives;
 mod traits;
 
+pub mod sequential_array;
+
 pub use all_indexes::{deserialize_all, serialize_all};
 pub use collections::serialize_string_with_limit;
 pub use traits::*;

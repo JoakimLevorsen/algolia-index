@@ -10,6 +10,7 @@ name = "indexer_lib"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
+ahash = { version = "0.7.6", features = ["serde"] }
 bencher = "0.1.5"
 colosseum = "0.2.2"
 console_error_panic_hook = "0.1.7"
@@ -25,6 +26,6 @@ wasm-bindgen-test = "0.3"
 lto = true
 opt-level = 'z'
 # opt-level = 3
-debug = true
+debug = false
 strip = true
 codegen-units = 1

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     ngram::HashExtractable,
-    serialize::{Deserializable, Serializable},
+    serialize::{sequential_array, Deserializable, Serializable},
 };
 
 use super::vendor::{Vendor, VendorManager};
@@ -127,5 +127,24 @@ impl<'a> Product<'a> {
                 serialization_id,
             },
         ))
+    }
+
+    pub fn serialize_to_sequential_array(input: &[&Product<'_>], output: &mut Vec<u8>) {
+        sequential_array::serialize(input.iter().map(|v| v.serialization_id), output);
+    }
+
+    pub fn deserialize_from_sequential_ids<'i>(
+        input: &'i [u8],
+        existing_products: &'a [Product<'a>],
+    ) -> Option<(&'i [u8], Vec<&'a Product<'a>>, Vec<usize>)> {
+        let (input, product_ids) = sequential_array::deserialize(input)?;
+
+        let mut products = Vec::with_capacity(product_ids.len());
+        for id in product_ids.iter() {
+            let product = existing_products.get(*id)?;
+            products.push(product);
+        }
+
+        Some((input, products, product_ids))
     }
 }

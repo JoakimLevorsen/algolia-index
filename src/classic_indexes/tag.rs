@@ -22,10 +22,8 @@ impl<'a> Serializable for Tag<'a> {
     fn serialize(&self, output: &mut Vec<u8>) {
         let Tag { name, products, .. } = self;
         name.serialize(output);
-        products.len().serialize(output);
-        for p in products {
-            p.serialization_id.serialize(output);
-        }
+
+        Product::serialize_to_sequential_array(products, output);
     }
 }
 
@@ -67,26 +65,17 @@ impl<'a> TagIndex<'a> {
         let mut tags = Vec::with_capacity(tag_len);
         for id in 0..tag_len {
             let (new_input, name) = String::deserialize(input)?;
-            let (new_input, products_amount) = usize::deserialize(new_input)?;
+
+            let (new_input, products, product_ids) =
+                Product::deserialize_from_sequential_ids(new_input, existing_products)?;
 
             input = new_input;
-
-            let mut products = Vec::with_capacity(products_amount);
-            for _ in 0..products_amount {
-                let (new_input, id) = usize::deserialize(input)?;
-                input = new_input;
-                let product = existing_products.get(id)?;
-                products.push(product);
-            }
-
-            let products_by_serialization_id =
-                products.iter().map(|p| p.serialization_id).collect();
 
             tags.push(Tag {
                 name,
                 products,
                 id,
-                products_by_serialization_id,
+                products_by_serialization_id: product_ids.into_iter().collect(),
             })
         }
 
