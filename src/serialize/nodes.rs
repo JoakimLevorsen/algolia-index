@@ -9,19 +9,21 @@ use crate::{
 
 use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
 
+fn serialize_node<G: GramAtom>(node: &GramNode<'_, G>, output: &mut Vec<u8>) {
+    Serializable::serialize(&node.item, output);
+    node.weight.serialize(output);
+    node.by_occurances.serialize(output);
+}
+
 impl<G: GramAtom> Serializable for GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        Serializable::serialize(&self.item, output);
-        self.weight.serialize(output);
-        self.by_occurances.serialize(output);
+        serialize_node(self, output)
     }
 }
 
 impl<G: GramAtom> Serializable for &GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        Serializable::serialize(&self.item, output);
-        self.weight.serialize(output);
-        self.by_occurances.serialize(output);
+        serialize_node(self, output)
     }
 }
 

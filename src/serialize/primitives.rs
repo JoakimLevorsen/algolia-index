@@ -3,14 +3,13 @@ use super::{Deserializable, Serializable};
 impl Serializable for char {
     fn serialize(&self, output: &mut Vec<u8>) {
         // We just use the u64 encoding defined further down
-        (*self as u64).serialize(output)
+        (*self as u32).serialize(output)
     }
 }
 
 impl Deserializable for char {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (input, v) = u64::deserialize(input)?;
-        let v: u32 = v.try_into().ok()?;
+        let (input, v) = u32::deserialize(input)?;
         let char = char::from_u32(v)?;
         Some((input, char))
     }
@@ -124,6 +123,20 @@ impl Deserializable for usize {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
         let (input, v) = u64::deserialize(input)?;
         let v: usize = v.try_into().ok()?;
+        Some((input, v))
+    }
+}
+
+impl Serializable for u32 {
+    fn serialize(&self, output: &mut Vec<u8>) {
+        (*self as u64).serialize(output)
+    }
+}
+
+impl Deserializable for u32 {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let (input, v) = u64::deserialize(input)?;
+        let v: u32 = v.try_into().ok()?;
         Some((input, v))
     }
 }
