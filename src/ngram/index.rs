@@ -24,6 +24,16 @@ where
     pub data: &'a Data,
 }
 
+pub fn n_gram_with_1_padding<const N: usize, G: GramAtom, I: Iterator<Item = G>>(
+    iter: &mut I,
+) -> Option<[G; N]> {
+    let mut base = [G::default(); N];
+    for item in base.iter_mut().take(N - 1) {
+        *item = iter.next()?;
+    }
+    Some(base)
+}
+
 #[derive(Debug, PartialEq)]
 pub struct GramNode<'data, G: GramAtom> {
     pub item: G,
@@ -141,7 +151,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
             return Some((previous_input, cummulative_weight));
         }
 
-        let best_result = |a: Option<([G; N], f32)>, b| {
+        let best_result = |a: Option<([G; N], f32)>, b: Option<([G; N], f32)>| {
             match (a, b) {
                 // If only one exists, we use the existing
                 (Some(v), None) | (None, Some(v)) => Some(v),
@@ -249,43 +259,97 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
     }
 }
 
-#[test]
-fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::data::{optimize, Product, RawProduct, SuperAlloc};
-    use colosseum::sync::Arena;
+#[cfg(test)]
+mod test {
+    use crate::data::Product;
 
-    let file = std::fs::read_to_string("./test.json")?;
+    use super::GramIndex;
 
-    let products: AHashMap<String, RawProduct> = serde_json::from_str(&file)?;
+    fn make_index<'a, const N: usize>(
+    ) -> Result<GramIndex<'a, char, Product<'a>, N>, Box<dyn std::error::Error>> {
+        use crate::data::{optimize, RawProduct, SuperAlloc};
+        use colosseum::sync::Arena;
 
-    let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
+        let file = std::fs::read_to_string("./test.json")?;
 
-    lazy_static::lazy_static! {
-        static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
+        let products: ahash::AHashMap<String, RawProduct> = serde_json::from_str(&file)?;
+
+        let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
+
+        lazy_static::lazy_static! {
+            static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
+        }
+
+        let (prods, _) = optimize(products, &SUPER_ARENA);
+
+        let iter = prods.products.iter().map(|p| {
+            let Product {
+                description,
+                title,
+                vendor,
+                ..
+            } = p;
+
+            super::IndexFeed {
+                data: p,
+                grams: [description, title, &vendor.name]
+                    .into_iter()
+                    .flat_map(|s| s.chars())
+                    .flat_map(|c| c.to_lowercase()),
+            }
+        });
+
+        let arena = SUPER_ARENA.alloc(Arena::new());
+
+        let index: GramIndex<char, Product, N> = GramIndex::index_from(iter, arena, prods);
+
+        Ok(index)
     }
 
-    let (prods, _) = optimize(products, &SUPER_ARENA);
+    #[test]
+    fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
+        let _ = make_index::<5>()?;
+        Ok(())
+    }
 
-    let iter = prods.products.iter().map(|p| {
-        let Product {
-            description,
-            title,
-            vendor,
-            ..
-        } = p;
+    #[test]
+    #[ignore = "Only for testing statistics"]
+    fn test_gram_popularity() -> Result<(), Box<dyn std::error::Error>> {
+        let index = make_index::<5>()?;
 
-        IndexFeed {
-            data: p,
-            grams: [description, title, &vendor.name]
-                .into_iter()
-                .flat_map(|s| s.chars())
-                .flat_map(|c| c.to_lowercase()),
+        let mut products_for_gram = ahash::AHashMap::new();
+
+        let mut ones_with_space = 0;
+
+        for (gram, products) in index.data {
+            if products.len() == 1 && gram.iter().copied().any(char::is_whitespace) {
+                ones_with_space += 1;
+            }
+            products_for_gram
+                .entry(products.len())
+                .and_modify(|v| *v += 1)
+                .or_insert(1u32);
         }
-    });
 
-    let arena = Arena::new();
+        println!(
+            "{} single product n-grams contained atleast one space out of {}",
+            ones_with_space,
+            products_for_gram.get(&1).copied().unwrap_or(0)
+        );
 
-    let _: GramIndex<char, Product, 5> = GramIndex::index_from(iter, &arena, prods);
+        let ordered_products_for_gram = {
+            let mut prodcuts_for_gram: Vec<_> = products_for_gram.into_iter().collect();
+            prodcuts_for_gram.sort_by(|a, b| a.0.cmp(&b.0));
+            prodcuts_for_gram
+        };
 
-    Ok(())
+        let mut csv = "product_amount;ngrams\n".to_string();
+        for (product_amount, ngrams) in ordered_products_for_gram {
+            csv += &format!("{product_amount};{ngrams}\n")
+        }
+
+        std::fs::write("products_for_ngram.csv", csv)?;
+
+        Ok(())
+    }
 }

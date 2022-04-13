@@ -10,7 +10,7 @@ use super::{
 
 impl<T: Serializable> Serializable for Vec<&T> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (self.len() as u64).serialize(output);
+        self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output)
         }
@@ -19,7 +19,7 @@ impl<T: Serializable> Serializable for Vec<&T> {
 
 impl<T: Serializable> Serializable for &Vec<T> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (self.len() as u64).serialize(output);
+        self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output)
         }
@@ -28,7 +28,7 @@ impl<T: Serializable> Serializable for &Vec<T> {
 
 impl Serializable for Vec<usize> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (self.len() as u64).serialize(output);
+        self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output)
         }
@@ -37,8 +37,8 @@ impl Serializable for Vec<usize> {
 
 impl<T: Deserializable> Deserializable for Vec<T> {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (mut input, len) = u64::deserialize(input)?;
-        let mut out = Vec::with_capacity(len.try_into().unwrap());
+        let (mut input, len) = usize::deserialize(input)?;
+        let mut out = Vec::with_capacity(len);
         for _ in 0..len {
             let (new_input, item) = T::deserialize(input)?;
             input = new_input;
@@ -58,14 +58,8 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
     where
         'arena: 'input,
     {
-        let (mut input, len) = u64::deserialize(input)?;
-        let mut out = Vec::with_capacity(match len.try_into() {
-            Ok(v) => v,
-            Err(_) => panic!(
-                "Failed to convert {len} to usize with max of {}",
-                usize::MAX
-            ),
-        });
+        let (mut input, len) = usize::deserialize(input)?;
+        let mut out = Vec::with_capacity(len);
         for _ in 0..len {
             let (new_input, item) = T::deserialize_arena(input, arena)?;
             input = new_input;
@@ -77,7 +71,7 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
 
 impl Serializable for &'_ str {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (self.len() as u64).serialize(output);
+        self.len().serialize(output);
         for item in self.bytes() {
             output.push(item)
         }
@@ -126,8 +120,7 @@ fn test() {
 
 impl Deserializable for String {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (input, len) = u64::deserialize(input)?;
-        let len = len as usize;
+        let (input, len) = usize::deserialize(input)?;
         let bytes = &input[..len];
         let string = String::from_utf8(bytes.to_vec()).ok()?;
         Some((&input[len..], string))
@@ -136,7 +129,7 @@ impl Deserializable for String {
 
 impl<K: Serializable, V: Serializable> Serializable for AHashMap<K, V> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (self.len() as u64).serialize(output);
+        self.len().serialize(output);
         for (key, value) in self.iter() {
             key.serialize(output);
             value.serialize(output)
@@ -156,8 +149,8 @@ where
     where
         'arena: 'input,
     {
-        let (mut input, len) = u64::deserialize(input)?;
-        let mut out = AHashMap::with_capacity(len.try_into().unwrap());
+        let (mut input, len) = usize::deserialize(input)?;
+        let mut out = AHashMap::with_capacity(len);
         for _ in 0..len {
             let (new_input, key) = K::deserialize(input)?;
             let (new_input, value) = V::deserialize_arena(new_input, arena)?;
@@ -170,8 +163,8 @@ where
 
 impl<K: Deserializable + Eq + Hash, V: Deserializable> Deserializable for AHashMap<K, V> {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (mut input, len) = u64::deserialize(input)?;
-        let mut out = AHashMap::with_capacity(len.try_into().unwrap());
+        let (mut input, len) = usize::deserialize(input)?;
+        let mut out = AHashMap::with_capacity(len);
         for _ in 0..len {
             let (new_input, key) = K::deserialize(input)?;
             let (new_input, value) = V::deserialize(new_input)?;
@@ -193,8 +186,7 @@ impl<T: Serializable, const N: usize> Serializable for [T; N] {
 
 impl<T: Default + Deserializable + Copy, const N: usize> DeserializableCollection for [T; N] {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (mut input, len) = u64::deserialize(input)?;
-        let len: usize = len.try_into().unwrap();
+        let (mut input, len) = usize::deserialize(input)?;
         assert!(len == N);
         let mut out = [T::default(); N];
         for position in out.iter_mut().take(len) {
@@ -208,8 +200,7 @@ impl<T: Default + Deserializable + Copy, const N: usize> DeserializableCollectio
 
 impl<T: Default + Deserializable + Copy, const N: usize> Deserializable for [T; N] {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let (mut input, len) = u64::deserialize(input)?;
-        let len: usize = len.try_into().unwrap();
+        let (mut input, len) = usize::deserialize(input)?;
         assert!(len == N);
         let mut out = [T::default(); N];
         for position in out.iter_mut().take(len) {
