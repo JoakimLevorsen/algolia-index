@@ -60,7 +60,7 @@ pub fn search(input: &str, categories: &CategoryHandler, tags: &TagHandler) -> O
 
     let results = index.search(input.chars().flat_map(char::to_lowercase));
 
-    let results = results
+    let results: Vec<u64> = results
         .into_iter()
         .map(|(v, _)| v)
         // We remove the products of the wrong category or tag
@@ -92,9 +92,15 @@ pub fn get_tags() -> Option<TagHandler> {
     Some(TagHandler::new(index.clone()))
 }
 
+#[wasm_bindgen]
+pub struct TagSuggestionResult {
+    tag: js_interactable::JSTag,
+    input: String,
+}
+
 // Simple string match to find likely tags
 #[wasm_bindgen]
-pub fn tag_suggestion(query: &str) -> Option<js_interactable::JSTag> {
+pub fn tag_suggestion(query: &str) -> Option<TagSuggestionResult> {
     fn overlap(original: &str, other: &str, min_len: usize) -> f32 {
         let min_len_found = original.len().min(other.len());
         if min_len_found < min_len {
@@ -115,21 +121,26 @@ pub fn tag_suggestion(query: &str) -> Option<js_interactable::JSTag> {
 
     let index = read_lock.as_ref()?;
 
-    let mut most_likely = None;
+    let mut most_likely: Option<(f32, usize, &str)> = None;
     for keyword in query.split(' ') {
         for tag in &index.tags.tags {
             let overlap = overlap(tag.name.as_str(), keyword, 3);
             if overlap > 0.8 {
                 most_likely = match most_likely {
-                    Some((current, _)) if overlap > current => Some((overlap, tag.get_id())),
-                    None => Some((overlap, tag.get_id())),
+                    Some((current, _, _)) if overlap > current => {
+                        Some((overlap, tag.get_id(), keyword))
+                    }
+                    None => Some((overlap, tag.get_id(), keyword)),
                     current => current,
                 }
             }
         }
     }
 
-    most_likely.map(|(_, tag_id)| js_interactable::JSTag::new(index.clone(), tag_id))
+    most_likely.map(|(_, tag_id, input)| TagSuggestionResult {
+        tag: js_interactable::JSTag::new(index.clone(), tag_id),
+        input: input.to_string(),
+    })
 }
 
 use crate::data::{optimize, RawProduct};
