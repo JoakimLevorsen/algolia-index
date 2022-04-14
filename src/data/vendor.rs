@@ -71,7 +71,7 @@ impl<'a> VendorManager<'a> {
 impl Serializable for Vendor {
     fn serialize(&self, output: &mut Vec<u8>) {
         // Note we don't save id' since its implied by position in binary stream
-        self.name.serialize(output)
+        self.name.serialize(output);
     }
 }
 
@@ -82,8 +82,8 @@ impl<'a> Serializable for VendorManager<'a> {
         all_tags.sort_by(|a, b| a.id.cmp(&b.id));
         // Then we save just the tags
         all_tags.len().serialize(output);
-        for tag in all_tags.iter() {
-            tag.serialize(output)
+        for tag in &all_tags {
+            tag.serialize(output);
         }
     }
 }

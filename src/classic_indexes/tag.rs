@@ -51,7 +51,7 @@ impl<'a> Tag<'a> {
 impl<'a> Serializable for TagIndex<'a> {
     fn serialize(&self, output: &mut Vec<u8>) {
         let TagIndex { tags } = self;
-        tags.serialize(output)
+        tags.serialize(output);
     }
 }
 
@@ -76,7 +76,7 @@ impl<'a> TagIndex<'a> {
                 products,
                 id,
                 products_by_serialization_id: product_ids.into_iter().collect(),
-            })
+            });
         }
 
         Some((input, TagIndex { tags }))

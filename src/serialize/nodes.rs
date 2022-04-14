@@ -17,13 +17,13 @@ fn serialize_node<G: GramAtom>(node: &GramNode<'_, G>, output: &mut Vec<u8>) {
 
 impl<G: GramAtom> Serializable for GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        serialize_node(self, output)
+        serialize_node(self, output);
     }
 }
 
 impl<G: GramAtom> Serializable for &GramNode<'_, G> {
     fn serialize(&self, output: &mut Vec<u8>) {
-        serialize_node(self, output)
+        serialize_node(self, output);
     }
 }
 
@@ -46,8 +46,8 @@ impl<'arena, G: GramAtom> ArenaDeserializable<'arena, Self> for GramNode<'arena,
         let node: &'arena GramNode<'arena, G> = arena.alloc(GramNode {
             item,
             weight,
-            items,
             by_occurances,
+            items,
         });
         Some((input, node))
     }

@@ -40,7 +40,7 @@ where
         };
 
         previous = Some(item);
-        output.push(item)
+        output.push(item);
     }
 
     Some((input, output))

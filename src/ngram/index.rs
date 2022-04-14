@@ -96,7 +96,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                 None => continue,
             };
             for data in data {
-                results.add(*data, confidence)
+                results.add(*data, confidence);
             }
         }
         results.export_data_by_confidence()
@@ -119,7 +119,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
         let root_node = self.roots.get(query.get(0)?)?;
         let mut previous = [G::default(); N];
         previous[0] = query[0];
-        let changes_limit = (N / 3) as u8;
+        let changes_limit = u8::try_from(N / 3).unwrap();
         Self::recursive_search(
             &query[1..],
             root_node,
@@ -185,7 +185,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
             );
 
             // If we found something, we keep the most likely
-            most_likely = best_result(found, most_likely)
+            most_likely = best_result(found, most_likely);
         }
 
         // If more skips are allowed, we try those
@@ -228,7 +228,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                 );
 
                 // If we found something, we keep the most likely
-                most_likely = best_result(best_result(found, repeat_found), most_likely)
+                most_likely = best_result(best_result(found, repeat_found), most_likely);
             }
 
             // We try ignoring the previous gram, in case the user entered "abc" when they meant "ac"
@@ -250,7 +250,7 @@ impl<'a, G: GramAtom, Data: Ord + HashExtractable + Debug, const N: usize>
                         index,
                     );
 
-                    most_likely = best_result(found, most_likely)
+                    most_likely = best_result(found, most_likely);
                 }
             }
         }
@@ -295,7 +295,7 @@ mod test {
                 grams: [description, title, &vendor.name]
                     .into_iter()
                     .flat_map(|s| s.chars())
-                    .flat_map(|c| c.to_lowercase()),
+                    .flat_map(char::to_lowercase),
             }
         });
 
@@ -308,7 +308,8 @@ mod test {
 
     #[test]
     fn test_index_generation() -> Result<(), Box<dyn std::error::Error>> {
-        let _ = make_index::<5>()?;
+        let index = make_index::<5>()?;
+        std::mem::drop(index);
         Ok(())
     }
 
@@ -345,7 +346,7 @@ mod test {
 
         let mut csv = "product_amount;ngrams\n".to_string();
         for (product_amount, ngrams) in ordered_products_for_gram {
-            csv += &format!("{product_amount};{ngrams}\n")
+            csv += &format!("{product_amount};{ngrams}\n");
         }
 
         std::fs::write("products_for_ngram.csv", csv)?;

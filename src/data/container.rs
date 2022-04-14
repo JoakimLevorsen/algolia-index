@@ -36,7 +36,7 @@ impl<'a> ProductContainer<'a> {
         let (input, products) = {
             let mut products = Vec::new();
             for id in 0..product_count {
-                let (new_input, product) = Product::deserialize(input, id, vendors.clone())?;
+                let (new_input, product) = Product::deserialize(input, id, &vendors)?;
                 products.push(product);
                 input = new_input;
             }

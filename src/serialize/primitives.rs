@@ -3,7 +3,7 @@ use super::{Deserializable, Serializable};
 impl Serializable for char {
     fn serialize(&self, output: &mut Vec<u8>) {
         // We just use the u64 encoding defined further down
-        (*self as u32).serialize(output)
+        (*self as u32).serialize(output);
     }
 }
 
@@ -18,7 +18,7 @@ impl Deserializable for char {
 impl Serializable for f32 {
     fn serialize(&self, output: &mut Vec<u8>) {
         for byte in self.to_be_bytes() {
-            output.push(byte)
+            output.push(byte);
         }
     }
 }
@@ -27,7 +27,7 @@ impl Deserializable for f32 {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
         let mut bytes = [0; 4];
         for (i, item) in bytes.iter_mut().enumerate() {
-            *item = *input.get(i)?
+            *item = *input.get(i)?;
         }
         let num = Self::from_be_bytes(bytes);
         Some((&input[4..], num))
@@ -36,7 +36,7 @@ impl Deserializable for f32 {
 
 impl Serializable for bool {
     fn serialize(&self, output: &mut Vec<u8>) {
-        output.push(if *self { 1 } else { 0 })
+        output.push(if *self { 1 } else { 0 });
     }
 }
 
@@ -52,16 +52,16 @@ impl Serializable for u64 {
         let mut input = *self;
         loop {
             // We get 7 lowest bits
+            #[allow(clippy::cast_possible_truncation)]
             let to_encode = (input as u8) & 0b0111_1111;
             input >>= 7;
             // If input is now 0, this was the last significant byte, and none follow
             if input == 0 {
                 output.push(to_encode);
                 break;
-            } else {
-                // Theres a following bit
-                output.push(to_encode | 0b1000_0000)
             }
+            // Theres a following bit
+            output.push(to_encode | 0b1000_0000);
         }
     }
 }
@@ -79,7 +79,7 @@ impl Deserializable for u64 {
             let byte = byte << 1;
             out >>= 7;
             // We make the byte u64, and shift the data aaaaall the way to the front
-            let byte = (byte as u64) << (64 - 8);
+            let byte = u64::from(byte) << (64 - 8);
             out |= byte;
 
             input = &input[1..];
@@ -115,7 +115,7 @@ impl Deserializable for u64 {
 
 impl Serializable for usize {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (*self as u64).serialize(output)
+        (*self as u64).serialize(output);
     }
 }
 
@@ -129,7 +129,7 @@ impl Deserializable for usize {
 
 impl Serializable for u32 {
     fn serialize(&self, output: &mut Vec<u8>) {
-        (*self as u64).serialize(output)
+        u64::from(*self).serialize(output);
     }
 }
 
@@ -164,18 +164,25 @@ mod tests {
             assert!(
                 item == &deserialized,
                 "{item:?} was serialized/deserialized to {deserialized:?}"
-            )
+            );
         }
     }
 
     #[test]
     fn test_char_serialization() {
-        many_serialize_deserialize(&['a', char::default(), '\0', 'æ', '👽'])
+        many_serialize_deserialize(&['a', char::default(), '\0', 'æ', '👽']);
     }
 
     #[test]
     fn test_u64_serialization() {
-        many_serialize_deserialize(&[0b1000_0000, 0b0111_1111, 0, u64::MAX, u8::MAX as u64]);
+        many_serialize_deserialize(&[
+            0b1000_0000,
+            0b0111_1111,
+            0,
+            u64::MAX,
+            u64::from(u8::MAX),
+            u64::from(u32::MAX),
+        ]);
     }
 
     #[test]
@@ -186,7 +193,7 @@ mod tests {
     #[test]
     fn test_string_serialization() {
         let items =
-            ["", "Hello", "hello", " assadio👽 s da sad👽i oasid\n\t\n"].map(|v| v.to_string());
+            ["", "Hello", "hello", " assadio👽 s da sad👽i oasid\n\t\n"].map(str::to_string);
         many_serialize_deserialize(&items);
     }
 }

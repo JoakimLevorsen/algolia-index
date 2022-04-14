@@ -14,6 +14,7 @@ struct InnerMutableGramNode<G: GramAtom> {
     items: AHashMap<G, MutableGramNode<G>>,
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn occurances_to_weight(total: u32, this: u32) -> f32 {
     (this as f32) / (total as f32)
 }
@@ -102,7 +103,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
                     .clone();
 
                 // We add our node to the queued list of previous nodes, and move them on
-                for gram_node in queue.iter_mut() {
+                for gram_node in &mut queue {
                     let child_node = gram_node
                         .0
                         .borrow_mut()
@@ -126,7 +127,7 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
 
                 // We also add the lookback
                 for i in 1..N {
-                    lookback[i - 1] = lookback[i]
+                    lookback[i - 1] = lookback[i];
                 }
                 lookback[N - 1] = gram;
 
@@ -152,13 +153,15 @@ impl<'a, G: GramAtom, Data: Ord, const N: usize> GramIndex<'a, G, Data, N> {
 
         // We remove the data if it contains more than DATA_CUTOFF percent of products, since it doesn't carry enough information
         let products_amount = product_container.products.len();
+        #[allow(clippy::cast_precision_loss)]
         let maximum_product_amount = (products_amount as f32) * DATA_CUTOFF_PERCENTAGE;
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let maximum_product_amount = maximum_product_amount as usize;
         data_map.retain(|_, data| data.len() < maximum_product_amount);
 
         // We also sort the data for easier access later
         for (_, data) in data_map.iter_mut() {
-            data.sort()
+            data.sort();
         }
 
         GramIndex {

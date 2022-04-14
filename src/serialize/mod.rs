@@ -55,7 +55,7 @@ fn test_serialize_and_deserialize() -> Result<(), Box<dyn std::error::Error>> {
             grams: [description, title, &vendor.name]
                 .into_iter()
                 .flat_map(|s| s.chars())
-                .flat_map(|c| c.to_lowercase()),
+                .flat_map(char::to_lowercase),
         }
     });
 

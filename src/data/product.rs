@@ -22,7 +22,7 @@ impl Product<'_> {
         let mut multiplier = 1;
         for char in self.id.chars().rev() {
             let n = match char.to_digit(10) {
-                Some(v) => v as u64,
+                Some(v) => u64::from(v),
                 None => break,
             };
             out += n * multiplier;
@@ -96,7 +96,7 @@ impl Serializable for Product<'_> {
 
         crate::serialize::serialize_string_with_limit(description, 100, output);
         for field in [title, id] {
-            field.serialize(output)
+            field.serialize(output);
         }
 
         // Vendor and tags are just saved as their id's
@@ -108,7 +108,7 @@ impl<'a> Product<'a> {
     pub fn deserialize<'i>(
         input: &'i [u8],
         serialization_id: usize,
-        vendors: Arc<VendorManager<'a>>,
+        vendors: &Arc<VendorManager<'a>>,
     ) -> Option<(&'i [u8], Self)> {
         let (input, description) = String::deserialize(input)?;
         let (input, title) = String::deserialize(input)?;
@@ -140,7 +140,7 @@ impl<'a> Product<'a> {
         let (input, product_ids) = sequential_array::deserialize(input)?;
 
         let mut products = Vec::with_capacity(product_ids.len());
-        for id in product_ids.iter() {
+        for id in &product_ids {
             let product = existing_products.get(*id)?;
             products.push(product);
         }

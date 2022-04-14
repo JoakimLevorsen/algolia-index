@@ -10,7 +10,7 @@ use crate::{
 
 use super::{ProductContainer, SuperAlloc};
 
-#[derive(serde::Deserialize, PartialEq, Eq, Debug)]
+#[derive(serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RawProduct<'a> {
     pub description: String,
     pub tags: Vec<&'a str>,
@@ -20,7 +20,7 @@ pub struct RawProduct<'a> {
     pub options: Vec<RawProductOption<'a>>,
 }
 
-#[derive(serde::Deserialize, PartialEq, Eq, Debug)]
+#[derive(serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RawProductOption<'a> {
     pub name: &'a str,
     pub values: Vec<&'a str>,
@@ -33,7 +33,7 @@ pub fn optimize(
     let mut vendors = VendorManager::new(super_alloc);
 
     // We insert all the tags/vendors
-    for product in input.iter() {
+    for product in &input {
         vendors.insert(product.vendor);
     }
 
@@ -124,7 +124,7 @@ pub fn optimize(
                     }
                 };
 
-                option.add(&out.products[i])
+                option.add(&out.products[i]);
             }
         }
     }

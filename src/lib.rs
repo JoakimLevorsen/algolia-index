@@ -1,5 +1,10 @@
 #![allow(clippy::bool_comparison)]
 #![allow(clippy::unused_unit)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::module_name_repetitions)]
 
 use std::sync::{Arc, RwLock};
 
@@ -49,11 +54,11 @@ pub fn initialize(input: &[u8]) -> bool {
 }
 
 #[wasm_bindgen]
-pub fn search(input: String, categories: CategoryHandler, tags: TagHandler) -> Option<Vec<u64>> {
+pub fn search(input: &str, categories: &CategoryHandler, tags: &TagHandler) -> Option<Vec<u64>> {
     let lock = SHARED_INDEX.try_read().ok()?;
     let index = lock.as_ref()?.clone();
 
-    let results = index.search(input.chars().flat_map(|c| c.to_lowercase()));
+    let results = index.search(input.chars().flat_map(char::to_lowercase));
 
     let results = results
         .into_iter()
@@ -61,7 +66,7 @@ pub fn search(input: String, categories: CategoryHandler, tags: TagHandler) -> O
         // We remove the products of the wrong category or tag
         .filter(|p| categories.is_valid(p))
         .filter(|p| tags.is_valid(p))
-        .map(|p| p.get_id())
+        .map(Product::get_id)
         .collect();
 
     Some(results)
@@ -90,28 +95,29 @@ pub fn get_tags() -> Option<TagHandler> {
 // Simple string match to find likely tags
 #[wasm_bindgen]
 pub fn tag_suggestion(query: &str) -> Option<js_interactable::JSTag> {
-    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
-
-    let index = read_lock.as_ref()?;
-
     fn overlap(original: &str, other: &str, min_len: usize) -> f32 {
         let min_len_found = original.len().min(other.len());
         if min_len_found < min_len {
             return 0.0;
         }
+        #[allow(clippy::cast_precision_loss)]
         let min_len_found = min_len_found as f32;
         let overlap = original
             .chars()
             .zip(other.chars())
-            .map(|(a, b)| if a == b { 1 } else { 0 })
+            .map(|(a, b)| if a == b { 1.0 } else { 0.0 })
             .reduce(|a, b| a + b)
-            .unwrap_or(0);
-        (overlap as f32) / min_len_found
+            .unwrap_or(0.0);
+        overlap / min_len_found
     }
+
+    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+
+    let index = read_lock.as_ref()?;
 
     let mut most_likely = None;
     for keyword in query.split(' ') {
-        for tag in index.tags.tags.iter() {
+        for tag in &index.tags.tags {
             let overlap = overlap(tag.name.as_str(), keyword, 3);
             if overlap > 0.8 {
                 most_likely = match most_likely {
@@ -133,6 +139,13 @@ pub fn index_and_serialize(
     products: Vec<RawProduct>,
     arena: &'static SuperAlloc,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    index_and_serialize_with_n::<NGRAM_INDEX_SIZE>(products, arena)
+}
+
+pub fn index_and_serialize_with_n<const N: usize>(
+    products: Vec<RawProduct>,
+    arena: &'static SuperAlloc,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let (prods, classic_index) = optimize(products, arena);
 
     let iter = prods.products.iter().map(|p| {
@@ -148,16 +161,15 @@ pub fn index_and_serialize(
             grams: [description, title, &vendor.name]
                 .into_iter()
                 .flat_map(|s| s.chars())
-                .flat_map(|c| c.to_lowercase()),
+                .flat_map(char::to_lowercase),
         }
     });
 
     let arena = Arena::new();
 
-    let index: GramIndex<char, Product, NGRAM_INDEX_SIZE> =
-        GramIndex::index_from(iter, &arena, prods);
+    let index: GramIndex<char, Product, N> = GramIndex::index_from(iter, &arena, prods);
 
-    index.search("UNERsTuOD hvzdom".chars().flat_map(|c| c.to_lowercase()));
+    index.search("UNERsTuOD hvzdom".chars().flat_map(char::to_lowercase));
 
     let output = serialize_all(&index, &classic_index);
 

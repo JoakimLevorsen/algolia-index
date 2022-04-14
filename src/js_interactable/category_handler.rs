@@ -12,7 +12,7 @@ pub struct CategoryHandler {
 
 #[wasm_bindgen]
 impl CategoryHandler {
-    pub fn toggle(&mut self, item: ExportCategoryOption) {
+    pub fn toggle(&mut self, item: &ExportCategoryOption) {
         use std::collections::hash_map::Entry;
         match self.active.entry(item.keys()) {
             Entry::Occupied(v) => v.remove(),
@@ -22,10 +22,11 @@ impl CategoryHandler {
         }
     }
 
-    pub fn get_state(&self, item: ExportCategoryOption) -> bool {
+    pub fn get_state(&self, item: &ExportCategoryOption) -> bool {
         self.active.contains_key(&item.keys())
     }
 
+    #[allow(clippy::iter_not_returning_iterator)]
     pub fn iter(&self) -> CategoryIter {
         CategoryIter {
             handle: self.handle.clone(),

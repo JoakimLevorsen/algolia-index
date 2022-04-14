@@ -20,7 +20,7 @@ impl TagHandler {
         }
     }
 
-    pub fn toggle(&mut self, tag: JSTag) {
+    pub fn toggle(&mut self, tag: &JSTag) {
         use std::collections::hash_map::Entry;
         match self.active.entry(tag.get_id()) {
             Entry::Occupied(v) => v.remove(),

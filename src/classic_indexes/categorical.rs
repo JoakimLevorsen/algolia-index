@@ -65,15 +65,15 @@ impl<'a> Category<'a> {
                 content: products,
                 serialization_id,
                 products_by_serialization_id: product_ids.into_iter().collect(),
-            })
+            });
         }
 
         Some((
             input,
             Category {
-                exclusive,
                 name,
                 options,
+                exclusive,
             },
         ))
     }
