@@ -44,6 +44,9 @@ impl CategoryHandler {
     }
 
     pub fn is_valid(&self, product: &Product<'_>) -> bool {
+        if self.active.is_empty() {
+            return true;
+        }
         for (category, option) in self.active.keys() {
             let category = &self.handle.categories[*category];
             let option = &category.options[*option];

@@ -40,6 +40,9 @@ impl TagHandler {
     }
 
     pub fn is_valid(&self, product: &Product<'_>) -> bool {
+        if self.active.is_empty() {
+            return true;
+        }
         for id in self.active.keys() {
             let tag = self.handle.tags.get(*id).unwrap();
             if tag.contains(product) == false {
