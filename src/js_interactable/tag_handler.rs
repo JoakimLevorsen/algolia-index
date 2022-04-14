@@ -29,6 +29,10 @@ impl TagHandler {
             }
         }
     }
+
+    pub fn get_status(&self, tag: &JSTag) -> bool {
+        self.active.contains_key(&tag.index)
+    }
 }
 
 impl TagHandler {
