@@ -73,6 +73,7 @@ impl TagIter {
     }
 }
 
+#[derive(Clone)]
 #[wasm_bindgen]
 pub struct JSTag {
     handle: Arc<ClassicIndexes<'static>>,

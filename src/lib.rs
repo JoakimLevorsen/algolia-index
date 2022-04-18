@@ -98,6 +98,17 @@ pub struct TagSuggestionResult {
     input: String,
 }
 
+#[wasm_bindgen]
+impl TagSuggestionResult {
+    pub fn get_input(&self) -> String {
+        self.input.clone()
+    }
+
+    pub fn get_tag(&self) -> js_interactable::JSTag {
+        self.tag.clone()
+    }
+}
+
 // Simple string match to find likely tags
 #[wasm_bindgen]
 pub fn tag_suggestion(query: &str) -> Option<TagSuggestionResult> {
