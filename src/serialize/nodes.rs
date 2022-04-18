@@ -10,7 +10,7 @@ use crate::{
 use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
 
 fn serialize_node<G: GramAtom, Out: FnMut(u8)>(node: &GramNode<'_, G>, output: &mut Out) {
-    Serializable::serialize(&node.item, output);
+    node.item.serialize(output);
     node.weight.serialize(output);
     node.by_occurances.serialize(output);
 }

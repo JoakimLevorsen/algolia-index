@@ -21,7 +21,7 @@ pub mod js_interactable;
 pub mod ngram;
 pub mod preprocessor;
 mod serde_array;
-mod serialize;
+pub mod serialize;
 
 const NGRAM_INDEX_SIZE: usize = 5;
 type Index = GramIndex<'static, char, Product<'static>, NGRAM_INDEX_SIZE>;
@@ -191,7 +191,10 @@ pub fn index_and_serialize_with_n<const N: usize>(
 
     let index: GramIndex<char, Product, N> = GramIndex::index_from(iter, &arena, prods);
 
-    index.search("UNERsTuOD hvzdom".chars().flat_map(char::to_lowercase));
+    let results = index.search("kunst".chars().flat_map(char::to_lowercase));
+    // let results = index.search("UNERsTuOD hvzdom".chars().flat_map(char::to_lowercase));
+
+    println!("Got {} results", results.len());
 
     let output = serialize_all(&index, &classic_index);
 
