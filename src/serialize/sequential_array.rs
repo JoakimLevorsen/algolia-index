@@ -1,6 +1,6 @@
 use super::{Deserializable, Serializable};
 
-pub fn serialize<T, I>(input: I, output: &mut Vec<u8>)
+pub fn serialize<T, I, Out: FnMut(u8)>(input: I, output: &mut Out)
 where
     T: std::ops::Sub<Output = T> + Ord + Serializable + Copy,
     I: Iterator<Item = T>,

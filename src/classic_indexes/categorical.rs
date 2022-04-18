@@ -21,7 +21,7 @@ pub struct CategoryOption<'a> {
 }
 
 impl<'a> Serializable for Category<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let Category {
             name,
             options,
@@ -94,7 +94,7 @@ impl<'a> Category<'a> {
         Some((input, cats))
     }
 
-    pub fn serialize_many(input: &[Category<'a>], output: &mut Vec<u8>) {
+    pub fn serialize_many<Out: FnMut(u8)>(input: &[Category<'a>], output: &mut Out) {
         input.len().serialize(output);
         for cat in input.iter() {
             cat.serialize(output);

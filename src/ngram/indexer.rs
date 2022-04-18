@@ -21,16 +21,8 @@ fn occurances_to_weight(total: u32, this: u32) -> f32 {
 
 const DATA_CUTOFF_PERCENTAGE: f32 = 0.8;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct MutableGramNode<G: GramAtom>(Rc<RefCell<InnerMutableGramNode<G>>>);
-
-impl<G: GramAtom> std::fmt::Debug for MutableGramNode<G> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("MutableGramNode")
-            .field(&self.0.borrow())
-            .finish()
-    }
-}
 
 impl<G: GramAtom> MutableGramNode<G> {
     pub fn new(item: G, occurances: u32) -> Self {

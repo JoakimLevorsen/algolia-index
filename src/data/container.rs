@@ -48,7 +48,7 @@ impl<'a> ProductContainer<'a> {
 }
 
 impl<'a> Serializable for ProductContainer<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let ProductContainer { products, vendors } = self;
         vendors.serialize(output);
 

@@ -85,7 +85,7 @@ impl<'a> HashExtractable for &'a Product<'a> {
 }
 
 impl Serializable for Product<'_> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let Product {
             description,
             title,
@@ -129,7 +129,7 @@ impl<'a> Product<'a> {
         ))
     }
 
-    pub fn serialize_to_sequential_array(input: &[&Product<'_>], output: &mut Vec<u8>) {
+    pub fn serialize_to_sequential_array<Out: FnMut(u8)>(input: &[&Product<'_>], output: &mut Out) {
         sequential_array::serialize(input.iter().map(|v| v.serialization_id), output);
     }
 

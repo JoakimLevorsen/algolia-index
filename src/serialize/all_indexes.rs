@@ -13,8 +13,9 @@ pub fn serialize_all<G: GramAtom, const N: usize>(
     classic: &ClassicIndexes<'_>,
 ) -> Vec<u8> {
     let mut out = Vec::new();
-    ngram.serialize(&mut out);
-    classic.serialize(&mut out);
+    let mut save = |input: u8| out.push(input);
+    ngram.serialize(&mut save);
+    classic.serialize(&mut save);
     out
 }
 

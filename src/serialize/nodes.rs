@@ -9,20 +9,20 @@ use crate::{
 
 use super::{ArenaDeserializable, ArenaDeserializableCollection, Deserializable, Serializable};
 
-fn serialize_node<G: GramAtom>(node: &GramNode<'_, G>, output: &mut Vec<u8>) {
+fn serialize_node<G: GramAtom, Out: FnMut(u8)>(node: &GramNode<'_, G>, output: &mut Out) {
     Serializable::serialize(&node.item, output);
     node.weight.serialize(output);
     node.by_occurances.serialize(output);
 }
 
 impl<G: GramAtom> Serializable for GramNode<'_, G> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         serialize_node(self, output);
     }
 }
 
 impl<G: GramAtom> Serializable for &GramNode<'_, G> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         serialize_node(self, output);
     }
 }
@@ -54,7 +54,7 @@ impl<'arena, G: GramAtom> ArenaDeserializable<'arena, Self> for GramNode<'arena,
 }
 
 impl<G: GramAtom, const N: usize> Serializable for GramIndex<'_, G, Product<'_>, N> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.product_container.serialize(output);
         self.roots.serialize(output);
 

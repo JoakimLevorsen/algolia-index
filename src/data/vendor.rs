@@ -69,14 +69,14 @@ impl<'a> VendorManager<'a> {
 }
 
 impl Serializable for Vendor {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         // Note we don't save id' since its implied by position in binary stream
         self.name.serialize(output);
     }
 }
 
 impl<'a> Serializable for VendorManager<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let mut all_tags: Vec<_> = self.tags.values().collect();
         // We sort by the numbers, so we don't have to save those
         all_tags.sort_by(|a, b| a.id.cmp(&b.id));

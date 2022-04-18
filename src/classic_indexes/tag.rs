@@ -19,7 +19,7 @@ pub struct TagIndex<'a> {
 }
 
 impl<'a> Serializable for Tag<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let Tag { name, products, .. } = self;
         name.serialize(output);
 
@@ -49,7 +49,7 @@ impl<'a> Tag<'a> {
 }
 
 impl<'a> Serializable for TagIndex<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let TagIndex { tags } = self;
         tags.serialize(output);
     }

@@ -29,7 +29,7 @@ impl<'a> ClassicIndexes<'a> {
 }
 
 impl<'a> Serializable for ClassicIndexes<'a> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         Category::serialize_many(&self.categories, output);
         self.tags.serialize(output);
     }

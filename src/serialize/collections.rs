@@ -9,7 +9,7 @@ use super::{
 };
 
 impl<T: Serializable> Serializable for Vec<&T> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output);
@@ -18,7 +18,7 @@ impl<T: Serializable> Serializable for Vec<&T> {
 }
 
 impl<T: Serializable> Serializable for &Vec<T> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output);
@@ -27,7 +27,7 @@ impl<T: Serializable> Serializable for &Vec<T> {
 }
 
 impl Serializable for Vec<usize> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.len().serialize(output);
         for item in self.iter() {
             item.serialize(output);
@@ -70,16 +70,16 @@ impl<'arena, T: ArenaDeserializable<'arena, T>> ArenaDeserializableCollection<'a
 }
 
 impl Serializable for &'_ str {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.len().serialize(output);
         for item in self.bytes() {
-            output.push(item);
+            output(item);
         }
     }
 }
 
 impl Serializable for String {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.as_str().serialize(output);
     }
 }
@@ -101,7 +101,7 @@ fn limit_string_len(input: &str, max_len: usize) -> &str {
     input
 }
 
-pub fn serialize_string_with_limit(input: &str, max_len: usize, output: &mut Vec<u8>) {
+pub fn serialize_string_with_limit<Out: FnMut(u8)>(input: &str, max_len: usize, output: &mut Out) {
     limit_string_len(input, max_len).serialize(output);
 }
 
@@ -128,7 +128,7 @@ impl Deserializable for String {
 }
 
 impl<K: Serializable, V: Serializable> Serializable for AHashMap<K, V> {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.len().serialize(output);
         for (key, value) in self.iter() {
             key.serialize(output);
@@ -176,7 +176,7 @@ impl<K: Deserializable + Eq + Hash, V: Deserializable> Deserializable for AHashM
 }
 
 impl<T: Serializable, const N: usize> Serializable for [T; N] {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         (self.len() as u64).serialize(output);
         for item in self.iter() {
             item.serialize(output);

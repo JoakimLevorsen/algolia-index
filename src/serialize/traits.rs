@@ -1,7 +1,7 @@
 use colosseum::sync::Arena;
 
 pub trait Serializable {
-    fn serialize(&self, output: &mut Vec<u8>);
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out);
 }
 
 pub trait Deserializable

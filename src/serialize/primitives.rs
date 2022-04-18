@@ -1,7 +1,7 @@
 use super::{Deserializable, Serializable};
 
 impl Serializable for char {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         // We just use the u64 encoding defined further down
         (*self as u32).serialize(output);
     }
@@ -16,9 +16,9 @@ impl Deserializable for char {
 }
 
 impl Serializable for f32 {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         for byte in self.to_be_bytes() {
-            output.push(byte);
+            output(byte);
         }
     }
 }
@@ -35,8 +35,8 @@ impl Deserializable for f32 {
 }
 
 impl Serializable for bool {
-    fn serialize(&self, output: &mut Vec<u8>) {
-        output.push(if *self { 1 } else { 0 });
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
+        output(if *self { 1 } else { 0 });
     }
 }
 
@@ -48,7 +48,7 @@ impl Deserializable for bool {
 }
 
 impl Serializable for u64 {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         let mut input = *self;
         loop {
             // We get 7 lowest bits
@@ -57,11 +57,11 @@ impl Serializable for u64 {
             input >>= 7;
             // If input is now 0, this was the last significant byte, and none follow
             if input == 0 {
-                output.push(to_encode);
+                output(to_encode);
                 break;
             }
             // Theres a following bit
-            output.push(to_encode | 0b1000_0000);
+            output(to_encode | 0b1000_0000);
         }
     }
 }
@@ -114,7 +114,7 @@ impl Deserializable for u64 {
 }
 
 impl Serializable for usize {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         (*self as u64).serialize(output);
     }
 }
@@ -128,7 +128,7 @@ impl Deserializable for usize {
 }
 
 impl Serializable for u32 {
-    fn serialize(&self, output: &mut Vec<u8>) {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         u64::from(*self).serialize(output);
     }
 }
@@ -147,7 +147,7 @@ mod tests {
 
     fn serialize_deserialize<T: Serializable + Deserializable + std::fmt::Debug>(input: &T) -> T {
         let mut bytes = Vec::new();
-        input.serialize(&mut bytes);
+        input.serialize(&mut |input| bytes.push(input));
         let (remaining_bytes, output) = T::deserialize(&bytes[..]).unwrap();
         assert!(
             remaining_bytes.is_empty(),
