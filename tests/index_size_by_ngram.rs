@@ -47,7 +47,7 @@ fn do_test<const N: usize>(csv: &mut String) {
 #[test]
 #[ignore = "Only for statistics around index sizes"]
 fn index_size_by_ngram() -> Result<(), Box<dyn std::error::Error>> {
-    let mut csv = "product_amount;size_in_kb\n".to_string();
+    let mut csv = "n-gram;size_in_kb\n".to_string();
 
     do_test::<2>(&mut csv);
     do_test::<3>(&mut csv);

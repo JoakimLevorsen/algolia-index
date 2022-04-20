@@ -53,7 +53,7 @@ fn index_size_pr_product() -> Result<(), Box<dyn std::error::Error>> {
 
         let arena = Arena::new();
 
-        let index: GramIndex<char, Product, 8> = GramIndex::index_from(iter, &arena, prods);
+        let index: GramIndex<char, Product, 5> = GramIndex::index_from(iter, &arena, prods);
 
         let output = serialize_all(&index, &classic_index);
 
