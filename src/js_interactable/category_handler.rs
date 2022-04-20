@@ -8,21 +8,46 @@ use wasm_bindgen::prelude::*;
 pub struct CategoryHandler {
     handle: Arc<ClassicIndexes<'static>>,
     active: AHashMap<(usize, usize), ()>,
+    general_observers: Vec<js_sys::Function>,
+    option_observers: AHashMap<(usize, usize), Vec<js_sys::Function>>,
 }
 
 #[wasm_bindgen]
 impl CategoryHandler {
     pub fn toggle(&mut self, item: &ExportCategoryOption) {
         use std::collections::hash_map::Entry;
-        match self.active.entry(item.keys()) {
-            Entry::Occupied(v) => v.remove(),
+        let new_state = match self.active.entry(item.keys()) {
+            Entry::Occupied(v) => {
+                v.remove();
+                false
+            }
             Entry::Vacant(space) => {
                 space.insert(());
+                true
             }
+        };
+
+        self.active
+            .entry((1, 2))
+            .and_modify(|_| todo!())
+            .or_insert_with(|| todo!());
+
+        let observers_for_this_option = self
+            .option_observers
+            .get(&item.keys())
+            .map_or(&[][..], |vec| &vec[..])
+            .iter();
+
+        let all_observers = observers_for_this_option.chain(self.general_observers.iter());
+
+        let new_js_state = JsValue::from(new_state);
+
+        for observer in all_observers {
+            observer.call0(&new_js_state).unwrap();
         }
     }
 
-    pub fn get_state(&self, item: &ExportCategoryOption) -> bool {
+    pub fn get_status(&self, item: &ExportCategoryOption) -> bool {
         self.active.contains_key(&item.keys())
     }
 
@@ -33,6 +58,37 @@ impl CategoryHandler {
             index: 0,
         }
     }
+
+    pub fn add_general_observer(&mut self, observer: js_sys::Function) {
+        self.general_observers.push(observer);
+    }
+
+    pub fn add_option_lister(&mut self, option: &ExportCategoryOption, observer: js_sys::Function) {
+        use std::collections::hash_map::Entry;
+        match self.option_observers.entry(option.keys()) {
+            Entry::Occupied(mut vec) => vec.get_mut().push(observer),
+            Entry::Vacant(empty) => {
+                empty.insert(vec![observer]);
+            }
+        }
+    }
+
+    pub fn remove_option_listener(
+        &mut self,
+        option: &ExportCategoryOption,
+        observer: &js_sys::Function,
+    ) {
+        let current_observers = match self.option_observers.get_mut(&option.keys()) {
+            Some(v) => v,
+            None => return,
+        };
+        for (index, obs) in current_observers.iter().enumerate() {
+            if observer == obs {
+                current_observers.swap_remove(index);
+                return;
+            }
+        }
+    }
 }
 
 impl CategoryHandler {
@@ -40,6 +96,8 @@ impl CategoryHandler {
         CategoryHandler {
             handle,
             active: AHashMap::new(),
+            general_observers: Vec::new(),
+            option_observers: AHashMap::new(),
         }
     }
 

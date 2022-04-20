@@ -9,6 +9,8 @@ use crate::{classic_indexes::ClassicIndexes, data::Product};
 pub struct TagHandler {
     handle: Arc<ClassicIndexes<'static>>,
     active: AHashMap<usize, ()>,
+    general_observers: Vec<js_sys::Function>,
+    tag_observers: AHashMap<usize, Vec<js_sys::Function>>,
 }
 
 #[wasm_bindgen]
@@ -22,16 +24,61 @@ impl TagHandler {
 
     pub fn toggle(&mut self, tag: &JSTag) {
         use std::collections::hash_map::Entry;
-        match self.active.entry(tag.get_id()) {
-            Entry::Occupied(v) => v.remove(),
+        let new_state = match self.active.entry(tag.get_id()) {
+            Entry::Occupied(v) => {
+                v.remove();
+                false
+            }
             Entry::Vacant(space) => {
                 space.insert(());
+                true
             }
+        };
+
+        let observers_for_this_tag = self
+            .tag_observers
+            .get(&tag.get_id())
+            .map_or(&[][..], |vec| &vec[..])
+            .iter();
+
+        let all_observers = observers_for_this_tag.chain(self.general_observers.iter());
+
+        let new_js_state = JsValue::from(new_state);
+
+        for observer in all_observers {
+            observer.call0(&new_js_state).unwrap();
         }
     }
 
     pub fn get_status(&self, tag: &JSTag) -> bool {
         self.active.contains_key(&tag.index)
+    }
+
+    pub fn add_general_observer(&mut self, observer: js_sys::Function) {
+        self.general_observers.push(observer);
+    }
+
+    pub fn add_tag_lister(&mut self, tag: &JSTag, observer: js_sys::Function) {
+        use std::collections::hash_map::Entry;
+        match self.tag_observers.entry(tag.get_id()) {
+            Entry::Occupied(mut vec) => vec.get_mut().push(observer),
+            Entry::Vacant(empty) => {
+                empty.insert(vec![observer]);
+            }
+        }
+    }
+
+    pub fn remove_tag_listener(&mut self, tag: &JSTag, observer: &js_sys::Function) {
+        let current_observers = match self.tag_observers.get_mut(&tag.get_id()) {
+            Some(v) => v,
+            None => return,
+        };
+        for (index, obs) in current_observers.iter().enumerate() {
+            if observer == obs {
+                current_observers.swap_remove(index);
+                return;
+            }
+        }
     }
 }
 
@@ -40,6 +87,8 @@ impl TagHandler {
         TagHandler {
             handle,
             active: AHashMap::new(),
+            general_observers: Vec::new(),
+            tag_observers: AHashMap::new(),
         }
     }
 
