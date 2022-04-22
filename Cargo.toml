@@ -9,6 +9,9 @@ edition = "2021"
 name = "indexer_lib"
 crate-type = ["cdylib", "lib"]
 
+[features]
+indexing = []
+
 [dependencies]
 ahash = { version = "0.7.6", features = ["serde"] }
 bencher = "0.1.5"
@@ -34,6 +37,19 @@ codegen-units = 1
 
 [profile.bench]
 opt-level = 3
+
+[profile.server_side]
+inherits = "release"
+opt-level = 3
+
+[profile.client_side]
+inherits = "release"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-Oz']
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = ['-O4']
 
 [[bench]]
 name = "indexing_based_on_gram_size"
