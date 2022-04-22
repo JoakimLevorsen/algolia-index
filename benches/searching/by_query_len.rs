@@ -8,6 +8,8 @@ use indexer_lib::{
     ngram::{GramIndex, IndexFeed},
 };
 
+const N: usize = 3;
+
 lazy_static::lazy_static! {
     static ref JSON_TEST_DATA: String = std::fs::read_to_string("./test.json").unwrap();
     static ref TEST_PRODUCTS: Vec<RawProduct<'static>> = {
@@ -16,11 +18,10 @@ lazy_static::lazy_static! {
         products.into_iter().map(|(_, v)| v).collect()
     };
     static ref SUPER_ALLOC: SuperAlloc = SuperAlloc::new();
+    static ref INDEX: GramIndex<'static, char, Product<'static>, N> = make_index();
 }
 
-const QUERY: &str = "Kunsplakter orang blå Nya hedegård";
-
-fn test<const N: usize>(bench: &mut Bencher) {
+fn make_index() -> GramIndex<'static, char, Product<'static>, N> {
     let (prods, _) = indexer_lib::data::optimize(TEST_PRODUCTS.clone(), &SUPER_ALLOC);
 
     let arena = SUPER_ALLOC.alloc(Arena::new());
@@ -42,52 +43,51 @@ fn test<const N: usize>(bench: &mut Bencher) {
         }
     });
 
-    let index: GramIndex<char, Product, N> = GramIndex::index_from(iter, arena, prods);
-
-    bench.iter(|| index.search(QUERY.chars().flat_map(char::to_lowercase)))
+    GramIndex::index_from(iter, arena, prods)
 }
 
-fn two_gram_search(bench: &mut Bencher) {
-    test::<2>(bench);
+const QUERY: &str = "Kunsplakter orang blå Nya hedegård";
+
+fn search(bench: &mut Bencher, len: usize) {
+    let query = &QUERY[0..len];
+
+    bench.iter(|| INDEX.search(query.chars().flat_map(char::to_lowercase)))
 }
 
-fn three_gram_search(bench: &mut Bencher) {
-    test::<3>(bench);
+fn three_chars(bench: &mut Bencher) {
+    search(bench, 3)
 }
-
-fn four_gram_search(bench: &mut Bencher) {
-    test::<4>(bench);
+fn five_chars(bench: &mut Bencher) {
+    search(bench, 5)
 }
-
-fn five_gram_search(bench: &mut Bencher) {
-    test::<5>(bench);
+fn seven_chars(bench: &mut Bencher) {
+    search(bench, 7)
 }
-
-fn six_gram_search(bench: &mut Bencher) {
-    test::<6>(bench);
+fn ten_chars(bench: &mut Bencher) {
+    search(bench, 10)
 }
-
-fn seven_gram_search(bench: &mut Bencher) {
-    test::<7>(bench);
+fn fifteen_chars(bench: &mut Bencher) {
+    search(bench, 15)
 }
-
-fn eight_gram_search(bench: &mut Bencher) {
-    test::<8>(bench);
+fn twenty_chars(bench: &mut Bencher) {
+    search(bench, 20)
 }
-
-fn nine_gram_search(bench: &mut Bencher) {
-    test::<9>(bench);
+fn twenty_five_chars(bench: &mut Bencher) {
+    search(bench, 25)
+}
+fn thirty_four_chars(bench: &mut Bencher) {
+    search(bench, 34)
 }
 
 benchmark_group!(
     searching_by_query_len,
-    two_gram_search,
-    three_gram_search,
-    four_gram_search,
-    five_gram_search,
-    six_gram_search,
-    seven_gram_search,
-    eight_gram_search,
-    nine_gram_search
+    three_chars,
+    five_chars,
+    seven_chars,
+    ten_chars,
+    fifteen_chars,
+    twenty_chars,
+    twenty_five_chars,
+    thirty_four_chars
 );
 benchmark_main!(searching_by_query_len);
