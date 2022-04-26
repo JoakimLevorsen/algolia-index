@@ -26,6 +26,7 @@ wasm-bindgen = "0.2.79"
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 rand = "0.8.5"
+criterion = "0.3.5"
 
 [profile.release]
 lto = true
@@ -36,7 +37,7 @@ strip = true
 codegen-units = 1
 
 [profile.bench]
-opt-level = 3
+opt-level = 'z'
 
 [profile.server_side]
 inherits = "release"

@@ -51,43 +51,46 @@ const QUERY: &str = "Kunsplakter orang blå Nya hedegård";
 fn search(bench: &mut Bencher, len: usize) {
     let query = &QUERY[0..len];
 
-    bench.iter(|| INDEX.search(query.chars().flat_map(char::to_lowercase)))
+    bench.iter(|| {
+        let r = INDEX.search(query.chars().flat_map(char::to_lowercase));
+        criterion::black_box(r)
+    })
 }
 
-fn three_chars(bench: &mut Bencher) {
+fn b3_chars_search(bench: &mut Bencher) {
     search(bench, 3)
 }
-fn five_chars(bench: &mut Bencher) {
+fn b5_chars_search(bench: &mut Bencher) {
     search(bench, 5)
 }
-fn seven_chars(bench: &mut Bencher) {
+fn b7_chars_search(bench: &mut Bencher) {
     search(bench, 7)
 }
-fn ten_chars(bench: &mut Bencher) {
+fn c10_chars_search(bench: &mut Bencher) {
     search(bench, 10)
 }
-fn fifteen_chars(bench: &mut Bencher) {
+fn c15_chars_search(bench: &mut Bencher) {
     search(bench, 15)
 }
-fn twenty_chars(bench: &mut Bencher) {
+fn c20_chars_search(bench: &mut Bencher) {
     search(bench, 20)
 }
-fn twenty_five_chars(bench: &mut Bencher) {
+fn c25_chars_search(bench: &mut Bencher) {
     search(bench, 25)
 }
-fn thirty_four_chars(bench: &mut Bencher) {
+fn c34_chars_search(bench: &mut Bencher) {
     search(bench, 34)
 }
 
 benchmark_group!(
     searching_by_query_len,
-    three_chars,
-    five_chars,
-    seven_chars,
-    ten_chars,
-    fifteen_chars,
-    twenty_chars,
-    twenty_five_chars,
-    thirty_four_chars
+    b3_chars_search,
+    b5_chars_search,
+    b7_chars_search,
+    c10_chars_search,
+    c15_chars_search,
+    c20_chars_search,
+    c25_chars_search,
+    c34_chars_search
 );
 benchmark_main!(searching_by_query_len);

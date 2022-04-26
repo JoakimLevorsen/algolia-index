@@ -42,51 +42,53 @@ fn test<const N: usize>(bench: &mut Bencher) {
             }
         });
 
-        let _: GramIndex<'_, char, Product, N> = GramIndex::index_from(iter, &arena, prods);
+        let index: GramIndex<'_, char, Product, N> = GramIndex::index_from(iter, &arena, prods);
+
+        criterion::black_box(index);
     });
 }
 
-fn two_gram_indexing(bench: &mut Bencher) {
+fn b2_gram_indexing(bench: &mut Bencher) {
     test::<2>(bench);
 }
 
-fn three_gram_indexing(bench: &mut Bencher) {
+fn b3_gram_indexing(bench: &mut Bencher) {
     test::<3>(bench);
 }
 
-fn four_gram_indexing(bench: &mut Bencher) {
+fn b4_gram_indexing(bench: &mut Bencher) {
     test::<4>(bench);
 }
 
-fn five_gram_indexing(bench: &mut Bencher) {
+fn b5_gram_indexing(bench: &mut Bencher) {
     test::<5>(bench);
 }
 
-fn six_gram_indexing(bench: &mut Bencher) {
+fn b6_gram_indexing(bench: &mut Bencher) {
     test::<6>(bench);
 }
 
-fn seven_gram_indexing(bench: &mut Bencher) {
+fn b7_gram_indexing(bench: &mut Bencher) {
     test::<7>(bench);
 }
 
-fn eight_gram_indexing(bench: &mut Bencher) {
+fn b8_gram_indexing(bench: &mut Bencher) {
     test::<8>(bench);
 }
 
-fn nine_gram_indexing(bench: &mut Bencher) {
+fn b9_gram_indexing(bench: &mut Bencher) {
     test::<9>(bench);
 }
 
 benchmark_group!(
     indexing_based_on_gram_size,
-    two_gram_indexing,
-    three_gram_indexing,
-    four_gram_indexing,
-    five_gram_indexing,
-    six_gram_indexing,
-    seven_gram_indexing,
-    eight_gram_indexing,
-    nine_gram_indexing
+    b2_gram_indexing,
+    b3_gram_indexing,
+    b4_gram_indexing,
+    b5_gram_indexing,
+    b6_gram_indexing,
+    b7_gram_indexing,
+    b8_gram_indexing,
+    b9_gram_indexing
 );
 benchmark_main!(indexing_based_on_gram_size);

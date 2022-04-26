@@ -49,23 +49,25 @@ pub fn test(product_amount: usize, bench: &mut Bencher) {
             }
         });
 
-        let _: GramIndex<'_, char, Product, 3> = GramIndex::index_from(iter, &arena, prods);
+        let index: GramIndex<'_, char, Product, 3> = GramIndex::index_from(iter, &arena, prods);
+
+        criterion::black_box(index);
     })
 }
 
-fn ten_products(bench: &mut Bencher) {
+fn b10_products(bench: &mut Bencher) {
     test(10, bench)
 }
-fn twenty_products(bench: &mut Bencher) {
+fn b20_products(bench: &mut Bencher) {
     test(20, bench)
 }
-fn fourty_products(bench: &mut Bencher) {
+fn b40_products(bench: &mut Bencher) {
     test(40, bench)
 }
-fn eighty_products(bench: &mut Bencher) {
+fn b80_products(bench: &mut Bencher) {
     test(80, bench)
 }
-fn onesixty_products(bench: &mut Bencher) {
+fn c160_products(bench: &mut Bencher) {
     test(180, bench)
 }
 fn all_products(bench: &mut Bencher) {
@@ -74,11 +76,11 @@ fn all_products(bench: &mut Bencher) {
 
 benchmark_group!(
     indexing_based_on_product_amount,
-    ten_products,
-    twenty_products,
-    fourty_products,
-    eighty_products,
-    onesixty_products,
+    b10_products,
+    b20_products,
+    b40_products,
+    b80_products,
+    c160_products,
     all_products
 );
 benchmark_main!(indexing_based_on_product_amount);

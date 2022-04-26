@@ -44,50 +44,53 @@ fn test<const N: usize>(bench: &mut Bencher) {
 
     let index: GramIndex<char, Product, N> = GramIndex::index_from(iter, arena, prods);
 
-    bench.iter(|| index.search(QUERY.chars().flat_map(char::to_lowercase)))
+    bench.iter(|| {
+        let r = index.search(QUERY.chars().flat_map(char::to_lowercase));
+        criterion::black_box(r)
+    })
 }
 
-fn two_gram_search(bench: &mut Bencher) {
+fn b2_gram_search(bench: &mut Bencher) {
     test::<2>(bench);
 }
 
-fn three_gram_search(bench: &mut Bencher) {
+fn b3_gram_search(bench: &mut Bencher) {
     test::<3>(bench);
 }
 
-fn four_gram_search(bench: &mut Bencher) {
+fn b4_gram_search(bench: &mut Bencher) {
     test::<4>(bench);
 }
 
-fn five_gram_search(bench: &mut Bencher) {
+fn b5_gram_search(bench: &mut Bencher) {
     test::<5>(bench);
 }
 
-fn six_gram_search(bench: &mut Bencher) {
+fn b6_gram_search(bench: &mut Bencher) {
     test::<6>(bench);
 }
 
-fn seven_gram_search(bench: &mut Bencher) {
+fn b7_gram_search(bench: &mut Bencher) {
     test::<7>(bench);
 }
 
-fn eight_gram_search(bench: &mut Bencher) {
+fn b8_gram_search(bench: &mut Bencher) {
     test::<8>(bench);
 }
 
-fn nine_gram_search(bench: &mut Bencher) {
+fn b9_gram_search(bench: &mut Bencher) {
     test::<9>(bench);
 }
 
 benchmark_group!(
     searching_by_gram_size,
-    two_gram_search,
-    three_gram_search,
-    four_gram_search,
-    five_gram_search,
-    six_gram_search,
-    seven_gram_search,
-    eight_gram_search,
-    nine_gram_search
+    b2_gram_search,
+    b3_gram_search,
+    b4_gram_search,
+    b5_gram_search,
+    b6_gram_search,
+    b7_gram_search,
+    b8_gram_search,
+    b9_gram_search
 );
 benchmark_main!(searching_by_gram_size);
