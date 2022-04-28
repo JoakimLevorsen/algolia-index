@@ -1,16 +1,30 @@
+use serde::Deserialize;
 use std::sync::Arc;
 
 use ahash::AHashMap;
 
 use crate::{
-    classic_indexes::{Category, CategoryOption, ClassicIndexes, TagIndex},
+    classic_indexes::{Category, CategoryOption, ClassicIndexes, OrderIndex, TagIndex},
     data::vendor::VendorManager,
     Product,
 };
 
-use super::{ProductContainer, SuperAlloc};
+use super::{FeatureSet, FeatureValue, ProductContainer, SuperAlloc};
 
-#[derive(serde::Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct CurrencyAmount {
+    pub amount: String,
+    #[serde(rename = "currencyCode")]
+    pub currency_code: String,
+}
+
+#[derive(Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct ProductPrice {
+    pub min: CurrencyAmount,
+    pub max: CurrencyAmount,
+}
+
+#[derive(Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RawProduct<'a> {
     pub description: String,
     pub tags: Vec<&'a str>,
@@ -18,9 +32,10 @@ pub struct RawProduct<'a> {
     pub vendor: &'a str,
     pub id: String,
     pub options: Vec<RawProductOption<'a>>,
+    pub price: ProductPrice,
 }
 
-#[derive(serde::Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RawProductOption<'a> {
     pub name: &'a str,
     pub values: Vec<&'a str>,
@@ -38,13 +53,9 @@ pub fn optimize(
     }
 
     let vendors = Arc::new(vendors);
-
     let mut products: Vec<Product<'static>> = Vec::with_capacity(input.len());
-
-    let out = ProductContainer::new(Vec::new(), vendors);
-
+    let out = ProductContainer::new(Vec::new(), vendors, FeatureSet::new_empty());
     let out = super_alloc.alloc_mut(out);
-
     let mut options_list = Vec::with_capacity(input.len());
     let mut tags_for_product = Vec::new();
     for (
@@ -56,6 +67,7 @@ pub fn optimize(
             vendor,
             id,
             options,
+            price,
         },
     ) in input.into_iter().enumerate()
     {
@@ -71,6 +83,11 @@ pub fn optimize(
             id,
             serialization_id: i,
         };
+
+        // We add the price to the dataset
+        out.extra_features
+            .add_float("price", price.min.amount.parse().unwrap());
+
         products.push(p);
     }
 
@@ -96,6 +113,32 @@ pub fn optimize(
                 .collect(),
         }
     };
+
+    let mut order = OrderIndex::new();
+    // Alphabetical
+    order.add(out, &|product, _| &product.title, "Alphabetical".to_owned());
+    // Price
+    order.add(
+        out,
+        &|product, extra| match extra.get(product, "price") {
+            Some(FeatureValue::Float(v)) => v,
+            _ => panic!("Only expected price as float"),
+        },
+        "Price low to high".to_owned(),
+    );
+    order.add_custom_cmp(
+        out,
+        &|product, extra| match extra.get(product, "price") {
+            Some(FeatureValue::Float(v)) => v,
+            _ => panic!("Only expected price as float"),
+        },
+        &|a, b| {
+            a.partial_cmp(b)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .reverse()
+        },
+        "Price high to low".to_owned(),
+    );
 
     let mut categories: Vec<Category> = Vec::new();
     let mut next_serialization_id = 0;
@@ -129,5 +172,5 @@ pub fn optimize(
         }
     }
 
-    (out, ClassicIndexes::new(categories, tag_index))
+    (out, ClassicIndexes::new(categories, tag_index, order))
 }

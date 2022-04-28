@@ -3,20 +3,26 @@ use std::sync::Arc;
 
 use crate::serialize::{ArenaDeserializableCollection, Deserializable, Serializable};
 
-use super::{vendor::VendorManager, Product};
+use super::{vendor::VendorManager, FeatureSet, Product};
 
 #[derive(PartialEq, Eq)]
 pub struct ProductContainer<'a> {
     pub products: Vec<Product<'a>>,
     pub vendors: Arc<VendorManager<'a>>,
+    pub extra_features: FeatureSet,
 }
 
 impl<'a> ProductContainer<'a> {
     pub fn new(
         products: Vec<Product<'a>>,
         vendors: Arc<VendorManager<'a>>,
+        extra_features: FeatureSet,
     ) -> ProductContainer<'a> {
-        ProductContainer { products, vendors }
+        ProductContainer {
+            products,
+            vendors,
+            extra_features,
+        }
     }
 
     pub fn deserialize<'input, 'outerarena>(
@@ -42,17 +48,30 @@ impl<'a> ProductContainer<'a> {
             }
             (input, products)
         };
+        let (input, extra_features) = FeatureSet::deserialize(input)?;
 
-        Some((input, ProductContainer { products, vendors }))
+        Some((
+            input,
+            ProductContainer {
+                products,
+                vendors,
+                extra_features,
+            },
+        ))
     }
 }
 
 impl<'a> Serializable for ProductContainer<'a> {
     fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
-        let ProductContainer { products, vendors } = self;
+        let ProductContainer {
+            products,
+            vendors,
+            extra_features,
+        } = self;
         vendors.serialize(output);
 
         products.serialize(output);
+        extra_features.serialize(output);
     }
 }
 

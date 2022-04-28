@@ -6,7 +6,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use classic_indexes::ClassicIndexes;
 use colosseum::sync::Arena;
@@ -27,8 +27,8 @@ const NGRAM_INDEX_SIZE: usize = 5;
 type Index = GramIndex<'static, char, Product<'static>, NGRAM_INDEX_SIZE>;
 
 lazy_static::lazy_static! {
-    static ref SHARED_INDEX: RwLock<Option<Arc<Index>>> = RwLock::new(None);
-    static ref SHARED_CLASSIC_INDEX: RwLock<Option<Arc<ClassicIndexes<'static>>>> = RwLock::new(None);
+    static ref SHARED_INDEX: Mutex<Option<Arc<Index>>> = Mutex::new(None);
+    static ref SHARED_CLASSIC_INDEX: Mutex<Option<Arc<ClassicIndexes<'static>>>> = Mutex::new(None);
     static ref NODE_ARENA: Arena<GramNode<'static, char>> = Arena::new();
     static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
 }
@@ -44,9 +44,9 @@ pub fn initialize(input: &[u8]) -> bool {
 
     let (index, classic) = deserialize_all(input, &NODE_ARENA, &SUPER_ARENA).unwrap();
 
-    SHARED_INDEX.write().unwrap().replace(Arc::new(index));
+    SHARED_INDEX.lock().unwrap().replace(Arc::new(index));
     SHARED_CLASSIC_INDEX
-        .write()
+        .lock()
         .unwrap()
         .replace(Arc::new(classic));
 
@@ -55,7 +55,7 @@ pub fn initialize(input: &[u8]) -> bool {
 
 #[wasm_bindgen]
 pub fn search(input: &str, categories: &CategoryHandler, tags: &TagHandler) -> Option<Vec<u64>> {
-    let lock = SHARED_INDEX.try_read().ok()?;
+    let lock = SHARED_INDEX.lock().ok()?;
     let index = lock.as_ref()?.clone();
 
     let results = index.search(input.chars().flat_map(char::to_lowercase));
@@ -76,7 +76,7 @@ use js_interactable::{CategoryHandler, TagHandler};
 
 #[wasm_bindgen]
 pub fn get_categories() -> Option<CategoryHandler> {
-    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+    let read_lock = SHARED_CLASSIC_INDEX.lock().unwrap();
 
     let index = read_lock.as_ref()?;
 
@@ -85,11 +85,20 @@ pub fn get_categories() -> Option<CategoryHandler> {
 
 #[wasm_bindgen]
 pub fn get_tags() -> Option<TagHandler> {
-    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+    let read_lock = SHARED_CLASSIC_INDEX.lock().unwrap();
 
     let index = read_lock.as_ref()?;
 
     Some(TagHandler::new(index.clone()))
+}
+
+#[wasm_bindgen]
+pub fn get_orders() -> Option<Vec<JsValue>> {
+    let lock = SHARED_CLASSIC_INDEX.lock().ok()?;
+    let index = lock.as_ref()?;
+    let options = index.order.options();
+    let js_options = options.map(JsValue::from);
+    Some(js_options.collect())
 }
 
 #[wasm_bindgen]
@@ -128,7 +137,7 @@ pub fn tag_suggestion(query: &str) -> Option<TagSuggestionResult> {
         overlap / min_len_found
     }
 
-    let read_lock = SHARED_CLASSIC_INDEX.read().unwrap();
+    let read_lock = SHARED_CLASSIC_INDEX.lock().unwrap();
 
     let index = read_lock.as_ref()?;
 
@@ -196,7 +205,21 @@ pub fn index_and_serialize_with_n<const N: usize>(
 
     println!("Got {} results", results.len());
 
+    return Ok(vec![]);
+
     let output = serialize_all(&index, &classic_index);
 
     Ok(output)
+}
+
+#[cfg(feature = "indexing")]
+#[wasm_bindgen]
+pub fn index(input: &str) -> Option<Vec<u8>> {
+    let products: ahash::AHashMap<String, RawProduct> = serde_json::from_str(input).ok()?;
+
+    let products: Vec<_> = products.into_iter().map(|(_, v)| v).collect();
+
+    let output = index_and_serialize(products, &SUPER_ARENA).ok()?;
+
+    Some(output)
 }

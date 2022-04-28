@@ -41,19 +41,3 @@ where
     where
         'arena: 'input;
 }
-
-// impl<'arena, T> ArenaDeserializable<'arena, T> for T
-// where
-//     T: Sized + Deserializable,
-// {
-//     fn deserialize_arena<'input>(
-//         input: &'input [u8],
-//         arena: &'arena Arena<Self>,
-//     ) -> Option<(&'input [u8], &'arena Self)>
-//     where
-//         'arena: 'input,
-//     {
-//         let (input, item) = Self::deserialize(input)?;
-//         Some((input, arena.alloc(item)))
-//     }
-// }

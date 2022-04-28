@@ -25,10 +25,12 @@ impl Serializable for f32 {
 
 impl Deserializable for f32 {
     fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
-        let mut bytes = [0; 4];
-        for (i, item) in bytes.iter_mut().enumerate() {
-            *item = *input.get(i)?;
-        }
+        let bytes = [
+            *input.get(0)?,
+            *input.get(1)?,
+            *input.get(2)?,
+            *input.get(3)?,
+        ];
         let num = Self::from_be_bytes(bytes);
         Some((&input[4..], num))
     }
@@ -138,6 +140,18 @@ impl Deserializable for u32 {
         let (input, v) = u64::deserialize(input)?;
         let v: u32 = v.try_into().ok()?;
         Some((input, v))
+    }
+}
+
+impl Serializable for u8 {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
+        output(*self);
+    }
+}
+impl Deserializable for u8 {
+    fn deserialize(input: &[u8]) -> Option<(&[u8], Self)> {
+        let me = *input.get(0)?;
+        Some((&input[1..], me))
     }
 }
 
