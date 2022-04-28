@@ -33,6 +33,13 @@ lazy_static::lazy_static! {
     static ref SUPER_ARENA: SuperAlloc = SuperAlloc::new();
 }
 
+// #[wasm_bindgen]
+// struct SearchEngine<'engine> {
+//     ngram: Arc<GramIndex<'engine, char, Product<'engine>, NGRAM_INDEX_SIZE>>,
+//     classic: Arc<ClassicIndexes<'engine>>,
+//     alloc: SuperAlloc,
+// }
+
 #[wasm_bindgen]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
@@ -54,25 +61,40 @@ pub fn initialize(input: &[u8]) -> bool {
 }
 
 #[wasm_bindgen]
-pub fn search(input: &str, categories: &CategoryHandler, tags: &TagHandler) -> Option<Vec<u64>> {
+pub fn search(
+    input: &str,
+    categories: &CategoryHandler,
+    tags: &TagHandler,
+    order: Option<String>,
+    feature_filter: &js_sys::Object,
+) -> Option<ProductProducer> {
+    let filters = FeatureFilter::parse(feature_filter)?;
+
     let lock = SHARED_INDEX.lock().ok()?;
     let index = lock.as_ref()?.clone();
 
     let results = index.search(input.chars().flat_map(char::to_lowercase));
 
-    let results: Vec<u64> = results
+    let mut results: Vec<_> = results
         .into_iter()
         .map(|(v, _)| v)
         // We remove the products of the wrong category or tag
         .filter(|p| categories.is_valid(p))
         .filter(|p| tags.is_valid(p))
-        .map(Product::get_id)
+        .map(|p| p.serialization_id)
         .collect();
 
-    Some(results)
+    if let Some(order) = order {
+        let lock = SHARED_CLASSIC_INDEX.lock().ok()?;
+        let classic = lock.as_ref()?;
+        let order = classic.order.get_orders(&order)?;
+        results.sort_by_cached_key(|v| order[*v]);
+    }
+
+    Some(ProductProducer::new(index.product_container, results))
 }
 
-use js_interactable::{CategoryHandler, TagHandler};
+use js_interactable::{CategoryHandler, FeatureFilter, TagHandler};
 
 #[wasm_bindgen]
 pub fn get_categories() -> Option<CategoryHandler> {
@@ -164,6 +186,7 @@ pub fn tag_suggestion(query: &str) -> Option<TagSuggestionResult> {
 }
 
 use crate::data::{optimize, RawProduct};
+use crate::js_interactable::ProductProducer;
 use crate::ngram::IndexFeed;
 
 pub fn index_and_serialize(
@@ -204,8 +227,6 @@ pub fn index_and_serialize_with_n<const N: usize>(
     // let results = index.search("UNERsTuOD hvzdom".chars().flat_map(char::to_lowercase));
 
     println!("Got {} results", results.len());
-
-    return Ok(vec![]);
 
     let output = serialize_all(&index, &classic_index);
 

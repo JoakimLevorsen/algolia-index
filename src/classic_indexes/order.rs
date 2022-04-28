@@ -61,6 +61,10 @@ impl OrderIndex {
         }
     }
 
+    pub fn get_orders(&self, feature: &str) -> Option<&Vec<usize>> {
+        self.orders.get(feature)
+    }
+
     pub fn options(&self) -> impl Iterator<Item = &str> {
         self.orders.keys().map(String::as_str)
     }

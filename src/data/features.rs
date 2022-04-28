@@ -15,6 +15,25 @@ pub enum Feature {
     Integer(Vec<u32>),
 }
 
+impl Feature {
+    pub fn get(&self, index: usize) -> Option<FeatureValue<'_>> {
+        match self {
+            Feature::String(list) => {
+                let item = list.get(index)?;
+                Some(FeatureValue::String(item))
+            }
+            Feature::Float(list) => {
+                let item = *list.get(index)?;
+                Some(FeatureValue::Float(item))
+            }
+            Feature::Integer(list) => {
+                let item = *list.get(index)?;
+                Some(FeatureValue::Integer(item))
+            }
+        }
+    }
+}
+
 pub enum FeatureValue<'a> {
     String(&'a str),
     Float(f32),
