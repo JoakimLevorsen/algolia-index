@@ -23,51 +23,57 @@ impl ProductProducer {
 impl ProductProducer {
     pub fn next_product(&mut self) -> Option<JsProduct> {
         let next_id = *self.to_export.get(self.index)?;
-        let next = self.container.products.get(next_id)?;
+        let container = self.container;
+        // Make sure this product exists
+        let _ = container.products.get(next_id)?;
         self.index += 1;
 
-        let Product {
-            description,
-            title,
-            id,
-            ..
-        } = next;
-
-        let price = self.container.extra_features.get(next, "price")?;
-
-        let price = match price {
-            FeatureValue::Float(f) => f,
-            _ => return None,
-        };
-
         Some(JsProduct {
-            title: title.clone(),
-            description: description.clone(),
-            id: id.clone(),
-            price,
+            container,
+            serialization_id: next_id,
         })
     }
 }
 
 #[wasm_bindgen]
 pub struct JsProduct {
-    title: String,
-    description: String,
-    pub price: f32,
-    id: String,
+    container: &'static ProductContainer<'static>,
+    serialization_id: usize,
 }
 
 #[wasm_bindgen]
 impl JsProduct {
+    fn product(&self) -> &Product<'_> {
+        &self.container.products[self.serialization_id]
+    }
+
+    pub fn numeric_feature(&self, key: &str) -> Option<f64> {
+        let features = &self.container.extra_features;
+        match features.get(self.product(), key)? {
+            FeatureValue::Float(f) => Some(f64::from(f)),
+            FeatureValue::Integer(i) => Some(f64::from(i)),
+            FeatureValue::String(_) => None,
+        }
+    }
+
+    pub fn string_feature(&self, key: &str) -> Option<String> {
+        let features = &self.container.extra_features;
+        if let Some(FeatureValue::String(string)) = features.get(self.product(), key) {
+            Some(string.to_string())
+        } else {
+            None
+        }
+    }
+
     pub fn get_title(&self) -> String {
-        self.title.clone()
+        self.product().title.clone()
     }
 
     pub fn get_description(&self) -> String {
-        self.description.clone()
+        self.product().description.clone()
     }
 
     pub fn get_id(&self) -> String {
-        self.id.clone()
+        self.product().id.clone()
     }
 }
