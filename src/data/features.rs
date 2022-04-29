@@ -99,6 +99,18 @@ impl FeatureSet {
         };
     }
 
+    pub fn add_string(&mut self, key: &str, value: String) {
+        match self.0.get_mut(key) {
+            Some(v) => match v {
+                Feature::String(i) => i.push(value),
+                _ => panic!("Expected Integer feature"),
+            },
+            None => {
+                self.0.insert(key.to_string(), Feature::String(vec![value]));
+            }
+        };
+    }
+
     pub fn new_empty() -> FeatureSet {
         FeatureSet(AHashMap::new())
     }

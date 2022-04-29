@@ -1,9 +1,12 @@
 use ahash::AHashSet;
 
 use crate::{
-    data::Product,
+    data::{Product, ProductContainer, RawProductOption},
     serialize::{Deserializable, Serializable},
 };
+
+#[derive(PartialEq, Eq)]
+pub struct CategoryIndex<'a>(pub Vec<Category<'a>>);
 
 #[derive(PartialEq, Eq)]
 pub struct Category<'a> {
@@ -78,29 +81,6 @@ impl<'a> Category<'a> {
         ))
     }
 
-    pub fn deserialize_many<'i>(
-        input: &'i [u8],
-        products: &'a [Product<'a>],
-    ) -> Option<(&'i [u8], Vec<Category<'a>>)> {
-        let (mut input, len) = usize::deserialize(input)?;
-        let mut cats = Vec::with_capacity(len);
-        let mut next_option_serialization_id = 0;
-        for _ in 0..len {
-            let (new_input, cat) =
-                Category::deserialize(input, products, &mut next_option_serialization_id)?;
-            input = new_input;
-            cats.push(cat);
-        }
-        Some((input, cats))
-    }
-
-    pub fn serialize_many<Out: FnMut(u8)>(input: &[Category<'a>], output: &mut Out) {
-        input.len().serialize(output);
-        for cat in input.iter() {
-            cat.serialize(output);
-        }
-    }
-
     pub fn new(name: String) -> Category<'a> {
         Category {
             name,
@@ -133,5 +113,84 @@ impl<'a> CategoryOption<'a> {
     pub fn contains(&self, product: &Product<'_>) -> bool {
         self.products_by_serialization_id
             .contains(&product.serialization_id)
+    }
+}
+
+impl<'a> CategoryIndex<'a> {
+    pub fn index(
+        options_list: Vec<Vec<RawProductOption>>,
+        container: &'a ProductContainer<'a>,
+    ) -> CategoryIndex<'a> {
+        let mut categories: Vec<Category> = Vec::new();
+        let mut next_serialization_id = 0;
+        // Then we register the categories for the options now they're read only
+        for (i, options) in options_list.into_iter().enumerate() {
+            for raw_option in options {
+                let category = match categories.iter_mut().find(|c| c.name == raw_option.name) {
+                    Some(v) => v,
+                    None => {
+                        let new = Category::new(raw_option.name.to_string());
+                        categories.push(new);
+                        let just_inserted = categories.len() - 1;
+                        categories.get_mut(just_inserted).unwrap()
+                    }
+                };
+
+                for raw_value in raw_option.values {
+                    let option = match category.options.iter_mut().find(|o| o.name == raw_value) {
+                        Some(v) => v,
+                        None => {
+                            let new =
+                                CategoryOption::new(raw_value.to_string(), next_serialization_id);
+                            next_serialization_id += 1;
+                            category.options.push(new);
+                            let just_inserted = category.options.len() - 1;
+                            category.options.get_mut(just_inserted).unwrap()
+                        }
+                    };
+
+                    option.add(&container.products[i]);
+                }
+            }
+        }
+
+        CategoryIndex(categories)
+    }
+
+    pub fn deserialize_many<'i>(
+        input: &'i [u8],
+        products: &'a [Product<'a>],
+    ) -> Option<(&'i [u8], CategoryIndex<'a>)> {
+        let (mut input, len) = usize::deserialize(input)?;
+        let mut cats = Vec::with_capacity(len);
+        let mut next_option_serialization_id = 0;
+        for _ in 0..len {
+            let (new_input, cat) =
+                Category::deserialize(input, products, &mut next_option_serialization_id)?;
+            input = new_input;
+            cats.push(cat);
+        }
+        Some((input, CategoryIndex(cats)))
+    }
+
+    pub fn get(&'a self, index: usize) -> Option<&'a Category<'a>> {
+        self.0.get(index)
+    }
+}
+
+impl Serializable for CategoryIndex<'_> {
+    fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
+        self.0.len().serialize(output);
+        for cat in &self.0 {
+            cat.serialize(output);
+        }
+    }
+}
+
+impl<'a> std::ops::Index<usize> for CategoryIndex<'a> {
+    type Output = Category<'a>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }

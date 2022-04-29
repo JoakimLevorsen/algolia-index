@@ -1,7 +1,7 @@
-use ahash::AHashSet;
+use ahash::{AHashMap, AHashSet};
 
 use crate::{
-    data::Product,
+    data::{Product, ProductContainer},
     serialize::{Deserializable, Serializable},
 };
 
@@ -14,9 +14,7 @@ pub struct Tag<'a> {
 }
 
 #[derive(PartialEq, Eq)]
-pub struct TagIndex<'a> {
-    pub tags: Vec<Tag<'a>>,
-}
+pub struct TagIndex<'a>(Vec<Tag<'a>>);
 
 impl<'a> Serializable for Tag<'a> {
     fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
@@ -50,7 +48,7 @@ impl<'a> Tag<'a> {
 
 impl<'a> Serializable for TagIndex<'a> {
     fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
-        let TagIndex { tags } = self;
+        let tags = &self.0;
         tags.serialize(output);
     }
 }
@@ -79,10 +77,39 @@ impl<'a> TagIndex<'a> {
             });
         }
 
-        Some((input, TagIndex { tags }))
+        Some((input, TagIndex(tags)))
     }
 
     pub fn get(&'a self, id: usize) -> Option<&'a Tag<'a>> {
-        self.tags.get(id)
+        self.0.iter();
+        self.0.get(id)
+    }
+
+    pub fn index<'out>(
+        tags_for_product: Vec<Vec<&str>>,
+        container: &'out ProductContainer<'out>,
+    ) -> TagIndex<'out> {
+        let mut products_for_tag: AHashMap<&str, Vec<&Product>> = AHashMap::new();
+        for (id, tags) in tags_for_product.into_iter().enumerate() {
+            let product = &container.products[id];
+            for tag in tags {
+                products_for_tag
+                    .entry(tag)
+                    .and_modify(|v| v.push(product))
+                    .or_insert_with(|| vec![product]);
+            }
+        }
+
+        TagIndex(
+            products_for_tag
+                .into_iter()
+                .enumerate()
+                .map(|(id, (name, products))| crate::classic_indexes::Tag::new(name, products, id))
+                .collect(),
+        )
+    }
+
+    pub fn iter(&'a self) -> impl Iterator<Item = &'a Tag<'a>> {
+        self.0.iter()
     }
 }

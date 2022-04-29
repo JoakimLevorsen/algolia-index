@@ -2,7 +2,7 @@ mod categorical;
 mod order;
 mod tag;
 
-pub use categorical::{Category, CategoryOption};
+pub use categorical::{Category, CategoryIndex, CategoryOption};
 
 use crate::{
     data::ProductContainer,
@@ -14,7 +14,7 @@ pub use tag::{Tag, TagIndex};
 
 #[derive(PartialEq, Eq)]
 pub struct ClassicIndexes<'a> {
-    pub categories: Vec<Category<'a>>,
+    pub categories: CategoryIndex<'a>,
     pub tags: TagIndex<'a>,
     pub order: OrderIndex,
 }
@@ -24,7 +24,7 @@ impl<'a> ClassicIndexes<'a> {
         input: &'i [u8],
         data: &'a ProductContainer<'a>,
     ) -> Option<(&'i [u8], Self)> {
-        let (input, categories) = Category::deserialize_many(input, &data.products)?;
+        let (input, categories) = CategoryIndex::deserialize_many(input, &data.products)?;
         let (input, tags) = TagIndex::deserialize(input, &data.products)?;
         let (input, order) = OrderIndex::deserialize(input)?;
         Some((
@@ -38,7 +38,7 @@ impl<'a> ClassicIndexes<'a> {
     }
 
     pub fn new(
-        categories: Vec<Category<'a>>,
+        categories: CategoryIndex<'a>,
         tags: TagIndex<'a>,
         order: OrderIndex,
     ) -> ClassicIndexes<'a> {
@@ -52,7 +52,7 @@ impl<'a> ClassicIndexes<'a> {
 
 impl<'a> Serializable for ClassicIndexes<'a> {
     fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
-        Category::serialize_many(&self.categories, output);
+        self.categories.serialize(output);
         self.tags.serialize(output);
     }
 }

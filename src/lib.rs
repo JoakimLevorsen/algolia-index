@@ -170,7 +170,7 @@ pub fn tag_suggestion(query: &str) -> Option<TagSuggestionResult> {
 
     let mut most_likely: Option<(f32, usize, &str)> = None;
     for keyword in query.split(' ') {
-        for tag in &index.tags.tags {
+        for tag in index.tags.iter() {
             let overlap = overlap(tag.name.as_str(), keyword, 3);
             if overlap > 0.8 {
                 most_likely = match most_likely {
