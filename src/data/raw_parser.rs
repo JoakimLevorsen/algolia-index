@@ -31,7 +31,7 @@ pub struct MediaItem<'a> {
 
 #[derive(Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RawProduct<'a> {
-    pub description: &'a str,
+    pub description: String,
     pub tags: Vec<&'a str>,
     pub title: &'a str,
     pub vendor: &'a str,
@@ -49,7 +49,7 @@ pub struct RawProductOption<'a> {
 
 pub struct IntermediateRawProduct<'a> {
     pub title: &'a str,
-    pub description: &'a str,
+    pub description: String,
     pub tags: Vec<&'a str>,
     pub vendor: &'a str,
     pub id: &'a str,
@@ -133,7 +133,7 @@ pub fn optimize(
         options_list.push(options);
 
         let p = Product {
-            description: description.to_string(),
+            description,
             vendor: my_vendor,
             title: title.to_string(),
             id: id.to_string(),

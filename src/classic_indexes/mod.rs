@@ -54,5 +54,6 @@ impl<'a> Serializable for ClassicIndexes<'a> {
     fn serialize<Out: FnMut(u8)>(&self, output: &mut Out) {
         self.categories.serialize(output);
         self.tags.serialize(output);
+        self.order.serialize(output);
     }
 }
