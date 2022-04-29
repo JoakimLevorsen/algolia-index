@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
 
+use crate::data::{FeatureSet, Product};
+
 pub struct FeatureFilter {
     data: FilterData,
     feature: String,
@@ -24,9 +26,7 @@ impl FeatureFilter {
             feature,
         }
     }
-}
 
-impl FeatureFilter {
     pub fn parse(input: &js_sys::Object) -> Option<Vec<FeatureFilter>> {
         fn get_value(object: &JsValue, key: &str) -> Option<JsValue> {
             let v = js_sys::Reflect::get(object, &key.to_string().into()).ok()?;
@@ -52,5 +52,45 @@ impl FeatureFilter {
             }
         }
         Some(out)
+    }
+
+    pub fn filter<'a>(
+        &'a self,
+        iter: Box<dyn Iterator<Item = &'a Product<'a>> + 'a>,
+        feature: &'a FeatureSet,
+    ) -> Box<dyn Iterator<Item = &'a Product> + 'a> {
+        match &self.data {
+            FilterData::Range { from, to } => match (from.as_f64(), to.as_f64()) {
+                (Some(from), Some(to)) => Box::new(iter.filter(move |p| {
+                    if let Some(found) = feature.get_js(p, &self.feature).and_then(|j| j.as_f64()) {
+                        from <= found && found <= to
+                    } else {
+                        false
+                    }
+                })),
+                (Some(from), None) => Box::new(iter.filter(move |p| {
+                    if let Some(found) = feature.get_js(p, &self.feature).and_then(|j| j.as_f64()) {
+                        from <= found
+                    } else {
+                        false
+                    }
+                })),
+                (None, Some(to)) => Box::new(iter.filter(move |p| {
+                    if let Some(found) = feature.get_js(p, &self.feature).and_then(|j| j.as_f64()) {
+                        found <= to
+                    } else {
+                        false
+                    }
+                })),
+                (None, None) => Box::new(iter),
+            },
+            FilterData::Exact(exact) => Box::new(iter.filter(move |p| {
+                if let Some(data) = feature.get_js(p, &self.feature) {
+                    &data == exact
+                } else {
+                    false
+                }
+            })),
+        }
     }
 }

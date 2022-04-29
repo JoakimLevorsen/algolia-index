@@ -74,15 +74,20 @@ pub fn search(
     let index = lock.as_ref()?.clone();
 
     let results = index.search(input.chars().flat_map(char::to_lowercase));
+    let mut filtered_results: Box<dyn Iterator<Item = &Product<'_>>> = Box::new(
+        results
+            .into_iter()
+            .map(|(v, _)| v)
+            // We remove the products of the wrong category or tag
+            .filter(|p| categories.is_valid(p))
+            .filter(|p| tags.is_valid(p)),
+    );
 
-    let mut results: Vec<_> = results
-        .into_iter()
-        .map(|(v, _)| v)
-        // We remove the products of the wrong category or tag
-        .filter(|p| categories.is_valid(p))
-        .filter(|p| tags.is_valid(p))
-        .map(|p| p.serialization_id)
-        .collect();
+    for filter in &filters {
+        filtered_results = filter.filter(filtered_results, &index.product_container.extra_features);
+    }
+
+    let mut results: Vec<usize> = filtered_results.map(|p| p.serialization_id).collect();
 
     if let Some(order) = order {
         let lock = SHARED_CLASSIC_INDEX.lock().ok()?;
