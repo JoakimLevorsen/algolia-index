@@ -46,7 +46,7 @@ impl TagHandler {
         let new_js_state = JsValue::from(new_state);
 
         for observer in all_observers {
-            observer.call0(&new_js_state).unwrap();
+            observer.call1(&JsValue::UNDEFINED, &new_js_state).unwrap();
         }
     }
 

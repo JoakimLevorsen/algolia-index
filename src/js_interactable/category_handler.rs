@@ -27,11 +27,6 @@ impl CategoryHandler {
             }
         };
 
-        self.active
-            .entry((1, 2))
-            .and_modify(|_| todo!())
-            .or_insert_with(|| todo!());
-
         let observers_for_this_option = self
             .option_observers
             .get(&item.keys())
@@ -43,7 +38,7 @@ impl CategoryHandler {
         let new_js_state = JsValue::from(new_state);
 
         for observer in all_observers {
-            observer.call0(&new_js_state).unwrap();
+            observer.call1(&JsValue::UNDEFINED, &new_js_state).unwrap();
         }
     }
 
