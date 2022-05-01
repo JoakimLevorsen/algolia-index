@@ -46,7 +46,9 @@ impl TagHandler {
         let new_js_state = JsValue::from(new_state);
 
         for observer in all_observers {
-            observer.call1(&JsValue::UNDEFINED, &new_js_state).unwrap();
+            if let Err(e) = observer.call1(&JsValue::UNDEFINED, &new_js_state) {
+                println!("Failed to call handler with error: {:?}", e);
+            }
         }
     }
 

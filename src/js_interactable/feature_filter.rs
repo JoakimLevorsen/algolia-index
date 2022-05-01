@@ -7,6 +7,7 @@ pub struct FeatureFilter {
     feature: String,
 }
 
+#[derive(Debug)]
 pub enum FilterData {
     Range { from: JsValue, to: JsValue },
     Exact(JsValue),
@@ -37,19 +38,21 @@ impl FeatureFilter {
             let entry = js_sys::Array::try_from(entry).ok()?;
             let feature = entry.get(0).as_string()?;
             let values = entry.get(1);
-            if let Some(exact) = get_value(&values, "exact") {
-                out.push(FeatureFilter {
-                    feature,
-                    data: FilterData::Exact(exact),
-                });
-            } else {
-                let from = get_value(&values, "from")?;
-                let to = get_value(&values, "to")?;
-                out.push(FeatureFilter {
-                    data: FilterData::Range { from, to },
-                    feature,
-                });
+
+            if let Some(from) = get_value(&values, "from") {
+                if let Some(to) = get_value(&values, "to") {
+                    out.push(FeatureFilter {
+                        data: FilterData::Range { from, to },
+                        feature,
+                    });
+                    continue;
+                }
             }
+            let exact = get_value(&values, "exact")?;
+            out.push(FeatureFilter {
+                feature,
+                data: FilterData::Exact(exact),
+            });
         }
         Some(out)
     }
